@@ -642,6 +642,16 @@ public partial class MainWindow : Window
         DateEuropeanMenuItem.Header = Check(dateFormat == "dd/MM/yyyy", L("dateEuropean"));
         DateUsMenuItem.Header = Check(dateFormat == "MM/dd/yyyy", L("dateUs"));
         DateDotsMenuItem.Header = Check(dateFormat == "dd.MM.yyyy", L("dateDots"));
+        ClockTime10MenuItem.Header = Check(_settings.ClockDisplaySeconds == 10, L("seconds10"));
+        ClockTime30MenuItem.Header = Check(_settings.ClockDisplaySeconds == 30, L("seconds30"));
+        ClockTime60MenuItem.Header = Check(_settings.ClockDisplaySeconds == 60, L("seconds60"));
+        Animations1MenuItem.Header = Check(_settings.AnimationsPerCycle == 1, L("animation1"));
+        Animations3MenuItem.Header = Check(_settings.AnimationsPerCycle == 3, L("animation3"));
+        Animations5MenuItem.Header = Check(_settings.AnimationsPerCycle == 5, L("animation5"));
+        AnimationGap0MenuItem.Header = Check(_settings.AnimationGapSeconds == 0, L("noPause"));
+        AnimationGap5MenuItem.Header = Check(_settings.AnimationGapSeconds == 5, L("seconds5"));
+        AnimationGap10MenuItem.Header = Check(_settings.AnimationGapSeconds == 10, L("seconds10"));
+        AnimationGap30MenuItem.Header = Check(_settings.AnimationGapSeconds == 30, L("seconds30"));
         Display.SetAppearance(preset, brightness, _settings.GlowEnabled ?? true);
     }
 
@@ -701,6 +711,7 @@ public partial class MainWindow : Window
     private void SetClockDisplaySeconds(int seconds)
     {
         _settings = (_settings with { ClockDisplaySeconds = seconds }).Normalize();
+        ApplySettingsToMenu();
         if (_displayMode == DisplayMode.Time)
             _clockUntilUtc = DateTimeOffset.UtcNow.AddSeconds(_settings.ClockDisplaySeconds);
         SaveSettings();
@@ -710,6 +721,7 @@ public partial class MainWindow : Window
     private void SetAnimationsPerCycle(int count)
     {
         _settings = (_settings with { AnimationsPerCycle = count }).Normalize();
+        ApplySettingsToMenu();
         SaveSettings();
         SetStatus($"Animationer per cykel: {_settings.AnimationsPerCycle}");
     }
@@ -717,6 +729,7 @@ public partial class MainWindow : Window
     private void SetAnimationGapSeconds(int seconds)
     {
         _settings = (_settings with { AnimationGapSeconds = seconds }).Normalize();
+        ApplySettingsToMenu();
         if (_nextAnimationAtUtc is not null)
             _nextAnimationAtUtc = DateTimeOffset.UtcNow.AddSeconds(_settings.AnimationGapSeconds);
         SaveSettings();

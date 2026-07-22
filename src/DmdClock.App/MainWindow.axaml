@@ -37,9 +37,9 @@
                         <MenuItem Header="Show clock (T)" Click="ShowTime_Click" />
                         <MenuItem x:Name="ShowSecondsMenuItem" Header="Show seconds" Click="ShowSeconds_Click" />
                         <MenuItem Header="Clock duration">
-                            <MenuItem Header="10 seconds" Click="ClockTime10_Click" />
-                            <MenuItem Header="30 seconds" Click="ClockTime30_Click" />
-                            <MenuItem Header="60 seconds" Click="ClockTime60_Click" />
+                            <MenuItem x:Name="ClockTime10MenuItem" Header="10 seconds" Click="ClockTime10_Click" />
+                            <MenuItem x:Name="ClockTime30MenuItem" Header="30 seconds" Click="ClockTime30_Click" />
+                            <MenuItem x:Name="ClockTime60MenuItem" Header="60 seconds" Click="ClockTime60_Click" />
                         </MenuItem>
                         <MenuItem Header="Time format">
                             <MenuItem x:Name="Clock24MenuItem" Header="24-hour" Click="Clock24_Click" />
@@ -47,15 +47,15 @@
                         </MenuItem>
                     </MenuItem>
                     <MenuItem Header="Animations per cycle">
-                        <MenuItem Header="1 animation" Click="Animations1_Click" />
-                        <MenuItem Header="3 animations" Click="Animations3_Click" />
-                        <MenuItem Header="5 animations" Click="Animations5_Click" />
+                        <MenuItem x:Name="Animations1MenuItem" Header="1 animation" Click="Animations1_Click" />
+                        <MenuItem x:Name="Animations3MenuItem" Header="3 animations" Click="Animations3_Click" />
+                        <MenuItem x:Name="Animations5MenuItem" Header="5 animations" Click="Animations5_Click" />
                     </MenuItem>
                     <MenuItem Header="Time between animations">
-                        <MenuItem Header="No pause" Click="AnimationGap0_Click" />
-                        <MenuItem Header="5 seconds" Click="AnimationGap5_Click" />
-                        <MenuItem Header="10 seconds" Click="AnimationGap10_Click" />
-                        <MenuItem Header="30 seconds" Click="AnimationGap30_Click" />
+                        <MenuItem x:Name="AnimationGap0MenuItem" Header="No pause" Click="AnimationGap0_Click" />
+                        <MenuItem x:Name="AnimationGap5MenuItem" Header="5 seconds" Click="AnimationGap5_Click" />
+                        <MenuItem x:Name="AnimationGap10MenuItem" Header="10 seconds" Click="AnimationGap10_Click" />
+                        <MenuItem x:Name="AnimationGap30MenuItem" Header="30 seconds" Click="AnimationGap30_Click" />
                     </MenuItem>
                     <Separator />
                     <MenuItem Header="Appearance">
