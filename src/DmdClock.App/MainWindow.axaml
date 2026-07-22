@@ -126,13 +126,22 @@
         <Border x:Name="StartupBrandOverlay"
                 IsHitTestVisible="False"
                 Background="#E6000000">
-            <TextBlock Text="Alien Tech"
-                       HorizontalAlignment="Center"
-                       VerticalAlignment="Center"
-                       FontFamily="Inter"
-                       FontSize="30"
-                       FontWeight="SemiBold"
-                       Foreground="#FFFFA126" />
+            <StackPanel HorizontalAlignment="Center"
+                        VerticalAlignment="Center"
+                        Spacing="7">
+                <TextBlock Text="Alien Tech"
+                           HorizontalAlignment="Center"
+                           FontFamily="Inter"
+                           FontSize="30"
+                           FontWeight="SemiBold"
+                           Foreground="#FFFFA126" />
+                <TextBlock x:Name="StartupAnimationCountText"
+                           Text="Loading animations…"
+                           HorizontalAlignment="Center"
+                           FontFamily="Inter"
+                           FontSize="12"
+                           Foreground="#D8FFFFFF" />
+            </StackPanel>
         </Border>
         </Grid>
     </Border>

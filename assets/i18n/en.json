@@ -9,5 +9,6 @@
   "showClock": "Show clock (T)", "showDate": "Show date (D)", "fullscreen": "Fullscreen (F11)",
   "clock": "Clock", "showSeconds": "Show seconds", "timeFormat": "Time format", "hour24": "24-hour", "hour12": "12-hour (AM/PM)",
   "date": "Date", "dateFormat": "Date format", "dateIso": "YYYY-MM-DD (ISO)", "dateEuropean": "DD/MM/YYYY", "dateUs": "MM/DD/YYYY", "dateDots": "DD.MM.YYYY",
+  "startupLoading": "Loading animations…", "startupLoaded": "{0:N0} animations loaded",
   "language": "Language", "english": "English", "swedish": "Swedish", "help": "Help – Alien Tech on GitHub", "exit": "Exit"
 }

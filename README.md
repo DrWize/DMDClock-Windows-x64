@@ -26,6 +26,7 @@ The active project scope is the original single-color DMD format. Full-color Ser
 - Optional `scene-metadata.json` for game, manufacturer and sequence information
 - Five-second game/sequence overlay at animation start
 - English menus by default, Swedish translation and a reusable i18n template
+- Startup branding with the actual number of successfully loaded animations
 - Keyboard shortcuts, fullscreen mode and a persistent right-click menu
 - Structured UTF-8 logs with a 3 MiB rotation limit
 

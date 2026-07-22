@@ -200,6 +200,10 @@ public partial class MainWindow : Window
                 : null;
             _playableItems.Clear();
             _playableItems.AddRange(_libraryIndex.Items.Where(static item => item.IsValid));
+            StartupAnimationCountText.Text = string.Format(
+                System.Globalization.CultureInfo.CurrentCulture,
+                L("startupLoaded"),
+                _playableItems.Count);
             _libraryPosition = currentId is null ? -1 : _playableItems.FindIndex(item => item.Id == currentId);
 
             var broken = _libraryIndex.Items.Count(static item => !item.IsValid);
@@ -550,6 +554,7 @@ public partial class MainWindow : Window
     {
         _settings = await _settingsStore.LoadAsync(_settingsPath);
         LocalizationManager.Load(_settings.Language ?? "en");
+        StartupAnimationCountText.Text = L("startupLoading");
         ApplyMenuTranslations(MainContextMenu.Items);
         _randomMode = _settings.RandomPlayback;
         ApplySettingsToMenu();

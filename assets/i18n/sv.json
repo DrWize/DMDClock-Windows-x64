@@ -9,5 +9,6 @@
   "showClock": "Visa klocka (T)", "showDate": "Visa datum (D)", "fullscreen": "Helskärm (F11)",
   "clock": "Klocka", "showSeconds": "Visa sekunder", "timeFormat": "Tidsformat", "hour24": "24-timmars", "hour12": "12-timmars (FM/EM)",
   "date": "Datum", "dateFormat": "Datumformat", "dateIso": "ÅÅÅÅ-MM-DD (ISO)", "dateEuropean": "DD/MM/ÅÅÅÅ", "dateUs": "MM/DD/ÅÅÅÅ", "dateDots": "DD.MM.ÅÅÅÅ",
+  "startupLoading": "Laddar animationer…", "startupLoaded": "{0:N0} animationer laddade",
   "language": "Språk", "english": "Engelska", "swedish": "Svenska", "help": "Hjälp – Alien Tech på GitHub", "exit": "Avsluta"
 }

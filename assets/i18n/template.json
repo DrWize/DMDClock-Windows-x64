@@ -57,6 +57,9 @@
   "fullscreen": "",
 
   "_comment_general": "Language names should be written in the target language. Alien Tech and GitHub are proper names and should not be translated.",
+  "_comment_startup": "Startup text. Preserve the {0:N0} placeholder; it is replaced by the localized number of loaded animations.",
+  "startupLoading": "",
+  "startupLoaded": "",
   "language": "",
   "english": "",
   "swedish": "",
