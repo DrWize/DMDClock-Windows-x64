@@ -8,3 +8,10 @@ scenes/*
 !scenes/README.md
 *.user
 *.suo
+
+# Optional locally supplied fonts with unconfirmed redistribution terms.
+assets/fonts/Pinball*.otf
+
+# Image-generation intermediates; keep only the selected 512 px master and ICO.
+assets/icons/*-source.png
+assets/icons/dmdclock-flipper-3.png

@@ -13,7 +13,8 @@ public sealed class DmdClockSettingsStoreTests
         try
         {
             await store.SaveAtomicAsync(new DmdClockSettings(
-                1, true, true, 1, 99, 9999, DmdColorPreset.Plasma, 999, false, false, "sv", "12", "dd/MM/yyyy", false), path);
+                1, true, true, 1, 99, 9999, DmdColorPreset.Plasma, 999, false, false, "sv", "12", "dd/MM/yyyy", false, false,
+                "Inter/InterVariable.ttf", "../outside.otf", "#1a2b3c", "invalid"), path);
             var loaded = await store.LoadAsync(path);
 
             Assert.True(loaded.RandomPlayback);
@@ -28,6 +29,11 @@ public sealed class DmdClockSettingsStoreTests
             Assert.Equal("12", loaded.ClockFormat);
             Assert.Equal("dd/MM/yyyy", loaded.DateFormat);
             Assert.False(loaded.ShowSeconds);
+            Assert.False(loaded.ShowTitleBar);
+            Assert.Equal("Inter/InterVariable.ttf", loaded.ClockFontFile);
+            Assert.Null(loaded.DateFontFile);
+            Assert.Equal("#1A2B3C", loaded.ForegroundColor);
+            Assert.Equal("#000000", loaded.BackgroundColor);
         }
         finally
         {
@@ -58,6 +64,9 @@ public sealed class DmdClockSettingsStoreTests
             Assert.Equal("24", loaded.ClockFormat);
             Assert.Equal("yyyy-MM-dd", loaded.DateFormat);
             Assert.True(loaded.ShowSeconds);
+            Assert.True(loaded.ShowTitleBar);
+            Assert.Null(loaded.ForegroundColor);
+            Assert.Equal("#000000", loaded.BackgroundColor);
         }
         finally
         {

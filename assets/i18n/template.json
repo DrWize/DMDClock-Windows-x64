@@ -23,7 +23,7 @@
   "animationGap": "",
   "noPause": "",
 
-  "_comment_time": "Clock labels. Keep the numeric durations and AM/PM meaning intact.",
+  "_comment_time": "Clock and font labels. Keep the numeric durations and AM/PM meaning intact. builtInFont names the internal bitmap fallback used when no TTF/OTF file is selected.",
   "clock": "",
   "showClock": "",
   "showSeconds": "",
@@ -35,6 +35,8 @@
   "timeFormat": "",
   "hour24": "",
   "hour12": "",
+  "font": "",
+  "builtInFont": "",
 
   "_comment_date": "Date labels. Translate YYYY/DD/MM letter notation if customary, but preserve the displayed component order and separators.",
   "date": "",
@@ -54,6 +56,12 @@
   "monochrome": "",
   "brightness": "",
   "glow": "",
+  "foregroundColor": "",
+  "backgroundColor": "",
+  "colorThemeValue": "",
+  "ok": "",
+  "cancel": "",
+  "showTitleBar": "",
   "fullscreen": "",
 
   "_comment_general": "Language names should be written in the target language. Alien Tech and GitHub are proper names and should not be translated.",

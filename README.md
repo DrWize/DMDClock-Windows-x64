@@ -28,6 +28,7 @@ The active project scope is the original single-color DMD format. Full-color Ser
 - English menus by default, Swedish translation and a reusable i18n template
 - Startup branding with the actual number of successfully loaded animations
 - Keyboard shortcuts, fullscreen mode and a persistent right-click menu
+- Optional title bar with click-and-drag movement in borderless mode
 - Structured UTF-8 logs with a 3 MiB rotation limit
 
 ## Running a published build
@@ -37,6 +38,8 @@ The active project scope is the original single-color DMD format. Full-color Ser
 3. Restart the app or choose **Rescan library (F5)**.
 
 Scene files are intentionally not included in this repository. The application creates or uses `./scenes` by default, scans subdirectories recursively and preserves that directory across local builds.
+
+Put `.ttf` or `.otf` files anywhere under the `fonts` directory beside the executable. Open the menu and choose **Appearance → Clock → Font** or **Appearance → Date → Font**; the font list is refreshed whenever the menu opens. Font choices and user-added font files are preserved across local builds. The built-in 5×7 font remains available as a fallback.
 
 ## Building from source
 
@@ -60,6 +63,10 @@ output/current/win-x64/
 ```
 
 Previous builds are retained under `output/archive/`.
+
+The application and window icon use the selected single-flipper concept number 3. The multi-resolution Windows icon and its 512 px source are stored in [`assets/icons`](assets/icons).
+
+Under **Appearance**, foreground and background colors can be selected with an RGB/hex color picker. Custom colors are saved in AppData; choosing one of the existing color themes resets the foreground to that theme while retaining the selected background.
 
 ## Controls
 
@@ -123,3 +130,15 @@ Planned work includes packaging, richer library selection, `.fnt` support, Raspb
 ## Font attribution
 
 The bundled Inter font is licensed under the SIL Open Font License 1.1. See [`assets/fonts/Inter/OFL-1.1.txt`](assets/fonts/Inter/OFL-1.1.txt).
+
+### Optional Pinball font family
+
+The five-style **Pinball** OpenType family has been downloaded separately for design evaluation from [Fontalicious](https://www.fontalicious.com/fonts/pinball):
+
+- Pinball
+- Pinball Galaxy
+- Pinball Scrambler
+- Pinball Scrambler II
+- Pinball Wizard
+
+Fontalicious labels the family as a free download and requests contact for commercial use. The `.otf` files are therefore not committed to this repository or included in published builds unless redistribution rights are confirmed. If the user places them in the installed `fonts` directory, DMDClock can render them into the 128×32 four-bit DMD frame.

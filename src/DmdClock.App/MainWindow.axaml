@@ -6,6 +6,7 @@
         mc:Ignorable="d" d:DesignWidth="1024" d:DesignHeight="256"
         x:Class="DmdClock.App.MainWindow"
         Title="DMD Clock"
+        Icon="/Assets/dmdclock.ico"
         Width="1024"
         Height="256"
         MinWidth="512"
@@ -13,9 +14,9 @@
         Background="Black">
     <Border Background="Black" BorderBrush="#080808" BorderThickness="3" Padding="3">
         <Grid>
-        <controls:DmdDisplay x:Name="Display">
+        <controls:DmdDisplay x:Name="Display" PointerPressed="Display_PointerPressed">
             <controls:DmdDisplay.ContextMenu>
-                <ContextMenu x:Name="MainContextMenu">
+                <ContextMenu x:Name="MainContextMenu" Opened="MainContextMenu_Opened">
                     <ContextMenu.Styles>
                         <Style Selector="MenuItem">
                             <Setter Property="StaysOpenOnClick" Value="True" />
@@ -59,6 +60,9 @@
                             <MenuItem x:Name="Brightness100MenuItem" Header="100 %" Click="Brightness100_Click" />
                         </MenuItem>
                         <MenuItem x:Name="GlowMenuItem" Header="Glow" Click="Glow_Click" />
+                        <MenuItem x:Name="ForegroundColorMenuItem" Header="Foreground color" Click="ForegroundColor_Click" />
+                        <MenuItem x:Name="BackgroundColorMenuItem" Header="Background color" Click="BackgroundColor_Click" />
+                        <MenuItem x:Name="ShowTitleBarMenuItem" Header="Show title bar" Click="ShowTitleBar_Click" />
                         <MenuItem Header="Clock">
                             <MenuItem Header="Show clock (T)" Click="ShowTime_Click" />
                             <MenuItem x:Name="ShowSecondsMenuItem" Header="Show seconds" Click="ShowSeconds_Click" />
@@ -71,6 +75,7 @@
                                 <MenuItem x:Name="Clock24MenuItem" Header="24-hour" Click="Clock24_Click" />
                                 <MenuItem x:Name="Clock12MenuItem" Header="12-hour (AM/PM)" Click="Clock12_Click" />
                             </MenuItem>
+                            <MenuItem x:Name="ClockFontMenuItem" Header="Font" />
                         </MenuItem>
                         <MenuItem Header="Date">
                             <MenuItem Header="Show date (D)" Click="ShowDate_Click" />
@@ -80,6 +85,7 @@
                                 <MenuItem x:Name="DateUsMenuItem" Header="MM/DD/YYYY" Click="DateUs_Click" />
                                 <MenuItem x:Name="DateDotsMenuItem" Header="DD.MM.YYYY" Click="DateDots_Click" />
                             </MenuItem>
+                            <MenuItem x:Name="DateFontMenuItem" Header="Font" />
                         </MenuItem>
                     </MenuItem>
                     <Separator />

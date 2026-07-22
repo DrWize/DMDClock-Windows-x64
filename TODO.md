@@ -68,9 +68,9 @@ Arbeta i denna ordning. Senare plattforms- och extrafunktioner ska inte gå för
 
 - [ ] Implementera och testa `.fnt`-läsaren
 - [ ] Visa och jämför ALTERN8, FISHY, TREK och TWILIGHT i appen
-- [ ] Gör fonten valbar och behåll den inbyggda 5×7-fonten som reserv
+- [x] Gör fonten valbar och behåll den inbyggda 5×7-fonten som reserv
 - [x] Lägg en öppet licensierad TTF-font med svenska tecken i `assets/fonts` och inkludera den i installationen
-- [ ] Implementera TTF/OTF-rendering till 4-bitars `DmdFrame`
+- [x] Implementera TTF/OTF-rendering till 4-bitars `DmdFrame`
 
 ### Prioritet 5 – första distribuerbara Windows-build
 
@@ -111,7 +111,7 @@ Den plattformsoberoende kärnan ska hållas åtskild från användargränssnitt 
 ### Visning
 
 - [x] Vanligt flyttbart fönster
-- [ ] Kantlöst fönster
+- [x] Kantlöst fönster med valbar titelrad och vänsterklick/drag för att flytta
 - [ ] Helskärm på valfri bildskärm
 - [ ] Starta automatiskt med Windows
 - [ ] Lägg till ett valbart Windows-skärmsläckarläge (`.scr`) som använder samma klocka, animationer och inställningar

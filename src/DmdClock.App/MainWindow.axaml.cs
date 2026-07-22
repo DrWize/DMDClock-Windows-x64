@@ -1,6 +1,7 @@
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
+using Avalonia.Media;
 using Avalonia.Platform.Storage;
 using Avalonia.Threading;
 using System.Diagnostics;
@@ -9,6 +10,7 @@ using System.Runtime.InteropServices;
 using DmdClock.Core;
 using DmdClock.App.Logging;
 using DmdClock.App.Localization;
+using DmdClock.App.Rendering;
 using DmdClock.Core.Clock;
 using DmdClock.Core.Library;
 using DmdClock.Core.Playback;
@@ -22,7 +24,7 @@ public partial class MainWindow : Window
 {
     private static readonly TimeSpan AnimationInformationDuration = TimeSpan.FromSeconds(5);
     private static readonly TimeSpan StartupBrandDuration = TimeSpan.FromSeconds(2);
-    private const string HelpGitHubUrl = "https://github.com/DrWize";
+    private const string HelpGitHubUrl = "https://github.com/DrWize/DMDClock-Windows-x64";
     private readonly DispatcherTimer _displayTimer;
     private readonly AnimationLibraryScanner _libraryScanner = new();
     private readonly AnimationLibraryStore _libraryStore = new();
@@ -36,6 +38,8 @@ public partial class MainWindow : Window
     private readonly string _settingsPath = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "DmdClock", "settings.json");
     private readonly List<AnimationLibraryItem> _playableItems = [];
+    private readonly Dictionary<MenuItem, string?> _clockFontItems = [];
+    private readonly Dictionary<MenuItem, string?> _dateFontItems = [];
     private readonly DateTimeOffset _startedUtc = DateTimeOffset.UtcNow;
     private readonly string _buildId = GetBuildId();
     private ScenePlaybackSession? _playback;
@@ -345,9 +349,7 @@ public partial class MainWindow : Window
     {
         var now = DateTimeOffset.Now;
         _lastClockRender = now;
-        Display.Frame = _displayMode == DisplayMode.Date
-            ? ClockFrameFactory.CreateDate(now, _settings.DateFormat ?? "yyyy-MM-dd")
-            : ClockFrameFactory.Create(now, _settings.ClockFormat == "12", _settings.ShowSeconds ?? true);
+        Display.Frame = _displayMode == DisplayMode.Date ? CreateDateFrame(now) : CreateClockFrame(now);
     }
 
     private DmdFrame RenderPlaybackFrame(DateTimeOffset now)
@@ -356,8 +358,36 @@ public partial class MainWindow : Window
         var storyboard = playback.Storyboard;
         var clock = storyboard.ClockStyle == 1
             ? ClockFrameFactory.CreateCompactTime(now, storyboard.CustomX, storyboard.CustomY, _settings.ClockFormat == "12")
-            : ClockFrameFactory.Create(now, _settings.ClockFormat == "12", _settings.ShowSeconds ?? true);
+            : CreateClockFrame(now);
         return DmdFrameCompositor.Compose(playback.CurrentFrame, clock, playback.ClockAbove);
+    }
+
+    private DmdFrame CreateClockFrame(DateTimeOffset now)
+    {
+        var fallback = () => ClockFrameFactory.Create(now, _settings.ClockFormat == "12", _settings.ShowSeconds ?? true);
+        var format = _settings.ClockFormat == "12"
+            ? ((_settings.ShowSeconds ?? true) ? "hh:mm:ss tt" : "hh:mm tt")
+            : ((_settings.ShowSeconds ?? true) ? "HH:mm:ss" : "HH:mm");
+        return CreateOpenTypeFrame(now.ToString(format), _settings.ClockFontFile, fallback);
+    }
+
+    private DmdFrame CreateDateFrame(DateTimeOffset now)
+    {
+        var format = _settings.DateFormat ?? "yyyy-MM-dd";
+        return CreateOpenTypeFrame(now.ToString(format), _settings.DateFontFile,
+            () => ClockFrameFactory.CreateDate(now, format));
+    }
+
+    private static DmdFrame CreateOpenTypeFrame(string text, string? relativeFontFile, Func<DmdFrame> fallback)
+    {
+        var fontPath = ResolveFontPath(relativeFontFile);
+        if (fontPath is null) return fallback();
+        try { return OpenTypeDmdFrameFactory.Create(text, fontPath); }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or
+                                          ArgumentException or InvalidOperationException or TypeInitializationException)
+        {
+            return fallback();
+        }
     }
 
     private void ToggleFullscreen()
@@ -556,6 +586,7 @@ public partial class MainWindow : Window
         LocalizationManager.Load(_settings.Language ?? "en");
         StartupAnimationCountText.Text = L("startupLoading");
         ApplyMenuTranslations(MainContextMenu.Items);
+        PopulateFontMenus();
         _randomMode = _settings.RandomPlayback;
         ApplySettingsToMenu();
         Show(DisplayMode.Time);
@@ -636,17 +667,24 @@ public partial class MainWindow : Window
         Brightness75MenuItem.Header = Check(brightness == 75, "75 %");
         Brightness100MenuItem.Header = Check(brightness == 100, "100 %");
         GlowMenuItem.Header = Check(_settings.GlowEnabled ?? true, L("glow"));
+        ForegroundColorMenuItem.Header = $"{L("foregroundColor")}: {_settings.ForegroundColor ?? L("colorThemeValue")}";
+        BackgroundColorMenuItem.Header = $"{L("backgroundColor")}: {_settings.BackgroundColor ?? "#000000"}";
         AnimationInfoMenuItem.Header = Check(_settings.ShowAnimationInfo ?? true, L("animationInfo"));
         EnglishLanguageMenuItem.Header = Check((_settings.Language ?? "en") == "en", L("english"));
         SwedishLanguageMenuItem.Header = Check(_settings.Language == "sv", L("swedish"));
         Clock24MenuItem.Header = Check(_settings.ClockFormat != "12", L("hour24"));
         Clock12MenuItem.Header = Check(_settings.ClockFormat == "12", L("hour12"));
         ShowSecondsMenuItem.Header = Check(_settings.ShowSeconds ?? true, L("showSeconds"));
+        ShowTitleBarMenuItem.Header = Check(_settings.ShowTitleBar ?? true, L("showTitleBar"));
+        WindowDecorations = (_settings.ShowTitleBar ?? true)
+            ? Avalonia.Controls.WindowDecorations.Full
+            : Avalonia.Controls.WindowDecorations.None;
         var dateFormat = _settings.DateFormat ?? "yyyy-MM-dd";
         DateIsoMenuItem.Header = Check(dateFormat == "yyyy-MM-dd", L("dateIso"));
         DateEuropeanMenuItem.Header = Check(dateFormat == "dd/MM/yyyy", L("dateEuropean"));
         DateUsMenuItem.Header = Check(dateFormat == "MM/dd/yyyy", L("dateUs"));
         DateDotsMenuItem.Header = Check(dateFormat == "dd.MM.yyyy", L("dateDots"));
+        ApplyFontMenuChecks();
         ClockTime10MenuItem.Header = Check(_settings.ClockDisplaySeconds == 10, L("seconds10"));
         ClockTime30MenuItem.Header = Check(_settings.ClockDisplaySeconds == 30, L("seconds30"));
         ClockTime60MenuItem.Header = Check(_settings.ClockDisplaySeconds == 60, L("seconds60"));
@@ -657,11 +695,77 @@ public partial class MainWindow : Window
         AnimationGap5MenuItem.Header = Check(_settings.AnimationGapSeconds == 5, L("seconds5"));
         AnimationGap10MenuItem.Header = Check(_settings.AnimationGapSeconds == 10, L("seconds10"));
         AnimationGap30MenuItem.Header = Check(_settings.AnimationGapSeconds == 30, L("seconds30"));
-        Display.SetAppearance(preset, brightness, _settings.GlowEnabled ?? true);
+        Display.SetAppearance(preset, brightness, _settings.GlowEnabled ?? true,
+            _settings.ForegroundColor, _settings.BackgroundColor);
     }
 
     private static string Check(bool selected, string label) => selected ? $"✓ {label}" : label;
     private static string L(string key) => LocalizationManager.Get(key);
+
+    private void PopulateFontMenus()
+    {
+        _clockFontItems.Clear();
+        _dateFontItems.Clear();
+        ClockFontMenuItem.Items.Clear();
+        DateFontMenuItem.Items.Clear();
+        AddFontMenuItem(ClockFontMenuItem, _clockFontItems, null, L("builtInFont"), SetClockFont);
+        AddFontMenuItem(DateFontMenuItem, _dateFontItems, null, L("builtInFont"), SetDateFont);
+
+        var fontsDirectory = Path.Combine(AppContext.BaseDirectory, "fonts");
+        if (Directory.Exists(fontsDirectory))
+        {
+            var files = Directory.EnumerateFiles(fontsDirectory, "*", SearchOption.AllDirectories)
+                .Where(IsSupportedFontFile)
+                .Select(path => new
+                {
+                    Path = path,
+                    Relative = Path.GetRelativePath(fontsDirectory, path).Replace('\\', '/')
+                })
+                .OrderBy(font => Path.GetFileNameWithoutExtension(font.Path), StringComparer.CurrentCultureIgnoreCase)
+                .ThenBy(font => font.Relative, StringComparer.OrdinalIgnoreCase);
+            foreach (var font in files)
+            {
+                var label = Path.GetFileNameWithoutExtension(font.Path);
+                AddFontMenuItem(ClockFontMenuItem, _clockFontItems, font.Relative, label, SetClockFont);
+                AddFontMenuItem(DateFontMenuItem, _dateFontItems, font.Relative, label, SetDateFont);
+            }
+        }
+        ApplyFontMenuChecks();
+    }
+
+    private static void AddFontMenuItem(MenuItem parent, Dictionary<MenuItem, string?> items,
+        string? relativePath, string label, Action<string?> selected)
+    {
+        var item = new MenuItem { Header = label, StaysOpenOnClick = true };
+        item.Click += (_, _) => selected(relativePath);
+        items[item] = relativePath;
+        parent.Items.Add(item);
+    }
+
+    private void ApplyFontMenuChecks()
+    {
+        foreach (var (item, path) in _clockFontItems)
+            item.Header = Check(string.Equals(path, _settings.ClockFontFile, StringComparison.OrdinalIgnoreCase),
+                path is null ? L("builtInFont") : Path.GetFileNameWithoutExtension(path));
+        foreach (var (item, path) in _dateFontItems)
+            item.Header = Check(string.Equals(path, _settings.DateFontFile, StringComparison.OrdinalIgnoreCase),
+                path is null ? L("builtInFont") : Path.GetFileNameWithoutExtension(path));
+    }
+
+    private static bool IsSupportedFontFile(string path) =>
+        Path.GetExtension(path) is { } extension &&
+        (extension.Equals(".ttf", StringComparison.OrdinalIgnoreCase) ||
+         extension.Equals(".otf", StringComparison.OrdinalIgnoreCase));
+
+    private static string? ResolveFontPath(string? relativePath)
+    {
+        if (string.IsNullOrWhiteSpace(relativePath)) return null;
+        var root = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "fonts"));
+        var candidate = Path.GetFullPath(Path.Combine(root, relativePath.Replace('/', Path.DirectorySeparatorChar)));
+        if (!candidate.StartsWith(root + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase) ||
+            !File.Exists(candidate) || !IsSupportedFontFile(candidate)) return null;
+        return candidate;
+    }
 
     private static void ApplyMenuTranslations(IEnumerable<object?> items)
     {
@@ -683,6 +787,7 @@ public partial class MainWindow : Window
         _settings = (_settings with { Language = language }).Normalize();
         LocalizationManager.Load(_settings.Language ?? "en");
         ApplyMenuTranslations(MainContextMenu.Items);
+        PopulateFontMenus();
         ApplySettingsToMenu();
         SaveSettings();
     }
@@ -703,9 +808,32 @@ public partial class MainWindow : Window
         if (_displayMode == DisplayMode.Time) UpdateClockOrDate();
     }
 
+    private void ToggleTitleBar()
+    {
+        _settings = (_settings with { ShowTitleBar = !(_settings.ShowTitleBar ?? true) }).Normalize();
+        ApplySettingsToMenu();
+        SaveSettings();
+    }
+
     private void SetDateFormat(string format)
     {
         _settings = (_settings with { DateFormat = format }).Normalize();
+        ApplySettingsToMenu();
+        SaveSettings();
+        if (_displayMode == DisplayMode.Date) UpdateClockOrDate();
+    }
+
+    private void SetClockFont(string? relativePath)
+    {
+        _settings = (_settings with { ClockFontFile = relativePath }).Normalize();
+        ApplySettingsToMenu();
+        SaveSettings();
+        if (_displayMode == DisplayMode.Time) UpdateClockOrDate();
+    }
+
+    private void SetDateFont(string? relativePath)
+    {
+        _settings = (_settings with { DateFontFile = relativePath }).Normalize();
         ApplySettingsToMenu();
         SaveSettings();
         if (_displayMode == DisplayMode.Date) UpdateClockOrDate();
@@ -745,11 +873,43 @@ public partial class MainWindow : Window
 
     private void SetColorPreset(DmdColorPreset preset)
     {
-        _settings = (_settings with { ColorPreset = preset }).Normalize();
+        _settings = (_settings with { ColorPreset = preset, ForegroundColor = null }).Normalize();
         ApplySettingsToMenu();
         SaveSettings();
         SetStatus($"Färgtema: {PresetName(preset)}");
     }
+
+    private async Task PickColorAsync(bool foreground)
+    {
+        var initial = foreground
+            ? ParseDisplayColor(_settings.ForegroundColor, PresetColor(_settings.ColorPreset ?? DmdColorPreset.Orange))
+            : ParseDisplayColor(_settings.BackgroundColor, Colors.Black);
+        var dialog = new ColorPickerWindow(
+            foreground ? L("foregroundColor") : L("backgroundColor"), initial, L("ok"), L("cancel"));
+        var selected = await dialog.ShowDialog<Color?>(this);
+        if (selected is not { } color) return;
+        var value = $"#{color.R:X2}{color.G:X2}{color.B:X2}";
+        _settings = foreground
+            ? (_settings with { ForegroundColor = value }).Normalize()
+            : (_settings with { BackgroundColor = value }).Normalize();
+        ApplySettingsToMenu();
+        SaveSettings();
+        SetStatus($"{(foreground ? L("foregroundColor") : L("backgroundColor"))}: {value}");
+    }
+
+    private static Color ParseDisplayColor(string? value, Color fallback)
+    {
+        try { return string.IsNullOrWhiteSpace(value) ? fallback : Color.Parse(value); }
+        catch (FormatException) { return fallback; }
+    }
+
+    private static Color PresetColor(DmdColorPreset preset) => preset switch
+    {
+        DmdColorPreset.Red => Color.FromRgb(255, 32, 16),
+        DmdColorPreset.Plasma => Color.FromRgb(120, 100, 255),
+        DmdColorPreset.Monochrome => Color.FromRgb(235, 235, 235),
+        _ => Color.FromRgb(255, 112, 14)
+    };
 
     private void SetBrightness(int percent)
     {
@@ -802,6 +962,7 @@ public partial class MainWindow : Window
     private async void OpenScene_Click(object? sender, RoutedEventArgs e) => await OpenSceneAsync();
     private async void ChooseFolder_Click(object? sender, RoutedEventArgs e) => await ChooseFolderAsync();
     private async void Rescan_Click(object? sender, RoutedEventArgs e) => await ScanLibraryAsync(startPlayback: false);
+    private void MainContextMenu_Opened(object? sender, RoutedEventArgs e) => PopulateFontMenus();
     private void PlayPause_Click(object? sender, RoutedEventArgs e) => TogglePause();
     private void NextFrame_Click(object? sender, RoutedEventArgs e) => MoveFrame(1);
     private void PreviousFrame_Click(object? sender, RoutedEventArgs e) => MoveFrame(-1);
@@ -847,6 +1008,8 @@ public partial class MainWindow : Window
         SaveSettings();
         SetStatus((_settings.GlowEnabled ?? true) ? "Glöd: på" : "Glöd: av");
     }
+    private async void ForegroundColor_Click(object? sender, RoutedEventArgs e) => await PickColorAsync(foreground: true);
+    private async void BackgroundColor_Click(object? sender, RoutedEventArgs e) => await PickColorAsync(foreground: false);
     private void AnimationInfo_Click(object? sender, RoutedEventArgs e) => ToggleAnimationInformation();
     private void ShowTime_Click(object? sender, RoutedEventArgs e) => Show(DisplayMode.Time);
     private void ShowDate_Click(object? sender, RoutedEventArgs e) => Show(DisplayMode.Date);
@@ -868,6 +1031,7 @@ public partial class MainWindow : Window
     private void Clock24_Click(object? sender, RoutedEventArgs e) => SetClockFormat("24");
     private void Clock12_Click(object? sender, RoutedEventArgs e) => SetClockFormat("12");
     private void ShowSeconds_Click(object? sender, RoutedEventArgs e) => ToggleShowSeconds();
+    private void ShowTitleBar_Click(object? sender, RoutedEventArgs e) => ToggleTitleBar();
     private void DateIso_Click(object? sender, RoutedEventArgs e) => SetDateFormat("yyyy-MM-dd");
     private void DateEuropean_Click(object? sender, RoutedEventArgs e) => SetDateFormat("dd/MM/yyyy");
     private void DateUs_Click(object? sender, RoutedEventArgs e) => SetDateFormat("MM/dd/yyyy");
@@ -876,6 +1040,15 @@ public partial class MainWindow : Window
     {
         _exitRequestedByMenu = true;
         Close();
+    }
+
+    private void Display_PointerPressed(object? sender, PointerPressedEventArgs e)
+    {
+        if (!(_settings.ShowTitleBar ?? true) && e.GetCurrentPoint(this).Properties.IsLeftButtonPressed)
+        {
+            BeginMoveDrag(e);
+            e.Handled = true;
+        }
     }
 
     private enum DisplayMode { Time, Date, Animation }

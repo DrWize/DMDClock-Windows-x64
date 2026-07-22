@@ -1,3 +1,5 @@
+using System.Globalization;
+
 namespace DmdClock.Core.Settings;
 
 public enum DmdColorPreset
@@ -22,12 +24,17 @@ public sealed record DmdClockSettings(
     string? Language,
     string? ClockFormat,
     string? DateFormat,
-    bool? ShowSeconds)
+    bool? ShowSeconds,
+    bool? ShowTitleBar,
+    string? ClockFontFile,
+    string? DateFontFile,
+    string? ForegroundColor,
+    string? BackgroundColor)
 {
     public const int CurrentSchemaVersion = 1;
 
     public static DmdClockSettings Default { get; } = new(
-        CurrentSchemaVersion, true, false, 30, 1, 0, DmdColorPreset.Orange, 100, true, true, "en", "24", "yyyy-MM-dd", true);
+        CurrentSchemaVersion, true, false, 30, 1, 0, DmdColorPreset.Orange, 100, true, true, "en", "24", "yyyy-MM-dd", true, true, null, null, null, "#000000");
 
     public DmdClockSettings Normalize() => this with
     {
@@ -42,6 +49,28 @@ public sealed record DmdClockSettings(
         Language = Language is "sv" ? "sv" : "en",
         ClockFormat = ClockFormat is "12" ? "12" : "24",
         DateFormat = DateFormat is "dd/MM/yyyy" or "MM/dd/yyyy" or "dd.MM.yyyy" ? DateFormat : "yyyy-MM-dd",
-        ShowSeconds = ShowSeconds ?? true
+        ShowSeconds = ShowSeconds ?? true,
+        ShowTitleBar = ShowTitleBar ?? true,
+        ClockFontFile = NormalizeFontFile(ClockFontFile),
+        DateFontFile = NormalizeFontFile(DateFontFile),
+        ForegroundColor = NormalizeColor(ForegroundColor),
+        BackgroundColor = NormalizeColor(BackgroundColor) ?? "#000000"
     };
+
+    private static string? NormalizeFontFile(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value)) return null;
+        var normalized = value.Trim().Replace('\\', '/').TrimStart('/');
+        return normalized.Split('/').Any(part => part is ".." or "") ? null : normalized;
+    }
+
+    private static string? NormalizeColor(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value)) return null;
+        var normalized = value.Trim();
+        if (normalized.Length != 7 || normalized[0] != '#' ||
+            !uint.TryParse(normalized.AsSpan(1), NumberStyles.HexNumber, CultureInfo.InvariantCulture, out _))
+            return null;
+        return normalized.ToUpperInvariant();
+    }
 }

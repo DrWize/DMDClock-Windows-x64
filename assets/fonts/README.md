@@ -13,3 +13,6 @@ Files in this directory are copied into application publish output under `fonts/
 
 The original DotClk `.fnt` files are not bundled here. They remain local external resources until their redistribution terms have been verified.
 
+## Pinball by Fontalicious
+
+The Pinball OpenType family (Pinball, Galaxy, Scrambler, Scrambler II and Wizard) was downloaded separately for evaluation from https://www.fontalicious.com/fonts/pinball. The source page describes it as a free download but asks users to contact Fontalicious for commercial use. These `.otf` files are not bundled or redistributed until their applicable rights have been confirmed.

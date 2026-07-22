@@ -115,6 +115,20 @@ try {
         Copy-Item -LiteralPath $metadataSource -Destination (Join-Path $stagingScenes 'scene-metadata.json') -Force
     }
 
+    # Keep fonts added directly to an installed build. Relative paths are preserved so saved font choices remain valid.
+    $stagingFonts = Join-Path $stagingDirectory 'fonts'
+    $currentFonts = Join-Path $currentDirectory 'fonts'
+    if (Test-Path -LiteralPath $currentFonts) {
+        Get-ChildItem -LiteralPath $currentFonts -File -Recurse | Where-Object {
+            $_.Extension -in @('.ttf', '.otf')
+        } | ForEach-Object {
+            $relativeFont = [IO.Path]::GetRelativePath($currentFonts, $_.FullName)
+            $fontDestination = Join-Path $stagingFonts $relativeFont
+            New-Item -ItemType Directory -Force -Path (Split-Path -Parent $fontDestination) | Out-Null
+            Copy-Item -LiteralPath $_.FullName -Destination $fontDestination -Force
+        }
+    }
+
     $toolsProject = Join-Path $projectRoot 'tools\DmdClock.Tools\DmdClock.Tools.csproj'
     $compatibilityOutput = & $dotnet run --project $toolsProject `
         --configuration $Configuration -- scan $stagingScenes
