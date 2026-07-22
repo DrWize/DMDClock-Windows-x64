@@ -1,0 +1,13 @@
+{
+  "openScene": "Öppna SCN-fil… (Ctrl+O)", "chooseFolder": "Välj animationsmapp… (Ctrl+Shift+O)", "rescan": "Skanna om biblioteket (F5)",
+  "playPause": "Spela/pausa (Mellanslag)", "nextFrame": "Nästa bildruta (Höger)", "previousFrame": "Föregående bildruta (Vänster)", "nextAnimation": "Nästa animation (N)", "previousAnimation": "Föregående animation (P)",
+  "random": "Slumpmässig ordning", "automatic": "Automatisk klock-/animationscykel", "animationInfo": "Animationsinformation (I)",
+  "clockTime": "Klocktid", "seconds10": "10 sekunder", "seconds30": "30 sekunder", "seconds60": "60 sekunder",
+  "animationsPerCycle": "Animationer per cykel", "animation1": "1 animation", "animation3": "3 animationer", "animation5": "5 animationer",
+  "animationGap": "Tid mellan animationer", "noPause": "Ingen paus", "seconds5": "5 sekunder",
+  "appearance": "Utseende", "colorTheme": "Färgtema", "orange": "Klassisk orange", "red": "Röd", "plasma": "Plasma", "monochrome": "Monokrom", "brightness": "Ljusstyrka", "glow": "Glöd",
+  "showClock": "Visa klocka (T)", "showDate": "Visa datum (D)", "fullscreen": "Helskärm (F11)",
+  "clock": "Klocka", "timeFormat": "Tidsformat", "hour24": "24-timmars", "hour12": "12-timmars (FM/EM)",
+  "date": "Datum", "dateFormat": "Datumformat", "dateIso": "ÅÅÅÅ-MM-DD (ISO)", "dateEuropean": "DD/MM/ÅÅÅÅ", "dateUs": "MM/DD/ÅÅÅÅ", "dateDots": "DD.MM.ÅÅÅÅ",
+  "language": "Språk", "english": "Engelska", "swedish": "Svenska", "help": "Hjälp – Alien Tech på GitHub", "exit": "Avsluta"
+}

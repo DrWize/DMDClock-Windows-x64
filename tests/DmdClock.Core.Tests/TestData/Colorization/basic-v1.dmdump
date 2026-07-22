@@ -1,0 +1,11 @@
+# Synthetic, redistributable DMDClock test vector. No ROM data.
+DMD-DUMP 1 width=4 height=2 bpp=2
+
+FRAME timestampMs=0
+0123
+3210
+
+# The second pixel on the lower row is dynamic.
+FRAME timestampMs=40
+0123
+3010

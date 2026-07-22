@@ -1,0 +1,10 @@
+bin/
+obj/
+.vs/
+.vscode/*.log
+external/
+output/
+scenes/*
+!scenes/README.md
+*.user
+*.suo

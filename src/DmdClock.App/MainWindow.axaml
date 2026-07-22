@@ -1,0 +1,138 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:controls="clr-namespace:DmdClock.App.Controls"
+        mc:Ignorable="d" d:DesignWidth="1024" d:DesignHeight="256"
+        x:Class="DmdClock.App.MainWindow"
+        Title="DMD Clock"
+        Width="1024"
+        Height="256"
+        MinWidth="512"
+        MinHeight="128"
+        Background="Black">
+    <Border Background="Black" BorderBrush="#080808" BorderThickness="3" Padding="3">
+        <Grid>
+        <controls:DmdDisplay x:Name="Display">
+            <controls:DmdDisplay.ContextMenu>
+                <ContextMenu x:Name="MainContextMenu">
+                    <ContextMenu.Styles>
+                        <Style Selector="MenuItem">
+                            <Setter Property="StaysOpenOnClick" Value="True" />
+                        </Style>
+                    </ContextMenu.Styles>
+                    <MenuItem Header="Open SCN file… (Ctrl+O)" Click="OpenScene_Click" />
+                    <MenuItem Header="Choose animation folder… (Ctrl+Shift+O)" Click="ChooseFolder_Click" />
+                    <MenuItem Header="Rescan library (F5)" Click="Rescan_Click" />
+                    <Separator />
+                    <MenuItem Header="Play/pause (Space)" Click="PlayPause_Click" />
+                    <MenuItem Header="Next frame (Right)" Click="NextFrame_Click" />
+                    <MenuItem Header="Previous frame (Left)" Click="PreviousFrame_Click" />
+                    <MenuItem Header="Next animation (N)" Click="NextAnimation_Click" />
+                    <MenuItem Header="Previous animation (P)" Click="PreviousAnimation_Click" />
+                    <MenuItem x:Name="RandomMenuItem" Header="Random order" Click="RandomMode_Click" />
+                    <MenuItem x:Name="AutomaticCycleMenuItem" Header="Automatic clock/animation cycle" Click="AutomaticCycle_Click" />
+                    <MenuItem x:Name="AnimationInfoMenuItem" Header="Animation information (I)" Click="AnimationInfo_Click" />
+                    <MenuItem Header="Clock">
+                        <MenuItem Header="Show clock (T)" Click="ShowTime_Click" />
+                        <MenuItem Header="Clock duration">
+                            <MenuItem Header="10 seconds" Click="ClockTime10_Click" />
+                            <MenuItem Header="30 seconds" Click="ClockTime30_Click" />
+                            <MenuItem Header="60 seconds" Click="ClockTime60_Click" />
+                        </MenuItem>
+                        <MenuItem Header="Time format">
+                            <MenuItem x:Name="Clock24MenuItem" Header="24-hour" Click="Clock24_Click" />
+                            <MenuItem x:Name="Clock12MenuItem" Header="12-hour (AM/PM)" Click="Clock12_Click" />
+                        </MenuItem>
+                    </MenuItem>
+                    <MenuItem Header="Animations per cycle">
+                        <MenuItem Header="1 animation" Click="Animations1_Click" />
+                        <MenuItem Header="3 animations" Click="Animations3_Click" />
+                        <MenuItem Header="5 animations" Click="Animations5_Click" />
+                    </MenuItem>
+                    <MenuItem Header="Time between animations">
+                        <MenuItem Header="No pause" Click="AnimationGap0_Click" />
+                        <MenuItem Header="5 seconds" Click="AnimationGap5_Click" />
+                        <MenuItem Header="10 seconds" Click="AnimationGap10_Click" />
+                        <MenuItem Header="30 seconds" Click="AnimationGap30_Click" />
+                    </MenuItem>
+                    <Separator />
+                    <MenuItem Header="Appearance">
+                        <MenuItem Header="Color theme">
+                            <MenuItem x:Name="AppearanceOrangeMenuItem" Header="Classic orange" Click="AppearanceOrange_Click" />
+                            <MenuItem x:Name="AppearanceRedMenuItem" Header="Red" Click="AppearanceRed_Click" />
+                            <MenuItem x:Name="AppearancePlasmaMenuItem" Header="Plasma" Click="AppearancePlasma_Click" />
+                            <MenuItem x:Name="AppearanceMonochromeMenuItem" Header="Monochrome" Click="AppearanceMonochrome_Click" />
+                        </MenuItem>
+                        <MenuItem Header="Brightness">
+                            <MenuItem x:Name="Brightness25MenuItem" Header="25 %" Click="Brightness25_Click" />
+                            <MenuItem x:Name="Brightness50MenuItem" Header="50 %" Click="Brightness50_Click" />
+                            <MenuItem x:Name="Brightness75MenuItem" Header="75 %" Click="Brightness75_Click" />
+                            <MenuItem x:Name="Brightness100MenuItem" Header="100 %" Click="Brightness100_Click" />
+                        </MenuItem>
+                        <MenuItem x:Name="GlowMenuItem" Header="Glow" Click="Glow_Click" />
+                    </MenuItem>
+                    <Separator />
+                    <MenuItem Header="Date">
+                        <MenuItem Header="Show date (D)" Click="ShowDate_Click" />
+                        <MenuItem Header="Date format">
+                            <MenuItem x:Name="DateIsoMenuItem" Header="YYYY-MM-DD (ISO)" Click="DateIso_Click" />
+                            <MenuItem x:Name="DateEuropeanMenuItem" Header="DD/MM/YYYY" Click="DateEuropean_Click" />
+                            <MenuItem x:Name="DateUsMenuItem" Header="MM/DD/YYYY" Click="DateUs_Click" />
+                            <MenuItem x:Name="DateDotsMenuItem" Header="DD.MM.YYYY" Click="DateDots_Click" />
+                        </MenuItem>
+                    </MenuItem>
+                    <MenuItem Header="Fullscreen (F11)" Click="Fullscreen_Click" />
+                    <Separator />
+                    <MenuItem Header="Language">
+                        <MenuItem x:Name="EnglishLanguageMenuItem" Header="English" Click="EnglishLanguage_Click" />
+                        <MenuItem x:Name="SwedishLanguageMenuItem" Header="Swedish" Click="SwedishLanguage_Click" />
+                    </MenuItem>
+                    <MenuItem Header="Help – Alien Tech on GitHub" Click="HelpGitHub_Click" />
+                    <Separator />
+                    <MenuItem Header="Exit" Click="Exit_Click" />
+                </ContextMenu>
+            </controls:DmdDisplay.ContextMenu>
+        </controls:DmdDisplay>
+        <Border x:Name="AnimationInfoOverlay"
+                IsVisible="False"
+                IsHitTestVisible="False"
+                HorizontalAlignment="Right"
+                VerticalAlignment="Bottom"
+                MaxWidth="420"
+                Margin="0,0,10,8"
+                Padding="8,5"
+                CornerRadius="3"
+                Background="#C0000000">
+            <StackPanel HorizontalAlignment="Right">
+                <TextBlock x:Name="AnimationGameText"
+                           HorizontalAlignment="Right"
+                           TextAlignment="Right"
+                           TextTrimming="CharacterEllipsis"
+                           FontFamily="Inter"
+                           FontSize="12"
+                           FontWeight="SemiBold"
+                           Foreground="#FFF2D2" />
+                <TextBlock x:Name="AnimationSequenceText"
+                           HorizontalAlignment="Right"
+                           TextAlignment="Right"
+                           TextTrimming="CharacterEllipsis"
+                           FontFamily="Inter"
+                           FontSize="10"
+                           Foreground="#D8FFFFFF" />
+            </StackPanel>
+        </Border>
+        <Border x:Name="StartupBrandOverlay"
+                IsHitTestVisible="False"
+                Background="#E6000000">
+            <TextBlock Text="Alien Tech"
+                       HorizontalAlignment="Center"
+                       VerticalAlignment="Center"
+                       FontFamily="Inter"
+                       FontSize="30"
+                       FontWeight="SemiBold"
+                       Foreground="#FFFFA126" />
+        </Border>
+        </Grid>
+    </Border>
+</Window>
