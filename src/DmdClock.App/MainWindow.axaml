@@ -33,19 +33,6 @@
                     <MenuItem x:Name="RandomMenuItem" Header="Random order" Click="RandomMode_Click" />
                     <MenuItem x:Name="AutomaticCycleMenuItem" Header="Automatic clock/animation cycle" Click="AutomaticCycle_Click" />
                     <MenuItem x:Name="AnimationInfoMenuItem" Header="Animation information (I)" Click="AnimationInfo_Click" />
-                    <MenuItem Header="Clock">
-                        <MenuItem Header="Show clock (T)" Click="ShowTime_Click" />
-                        <MenuItem x:Name="ShowSecondsMenuItem" Header="Show seconds" Click="ShowSeconds_Click" />
-                        <MenuItem Header="Clock duration">
-                            <MenuItem x:Name="ClockTime10MenuItem" Header="10 seconds" Click="ClockTime10_Click" />
-                            <MenuItem x:Name="ClockTime30MenuItem" Header="30 seconds" Click="ClockTime30_Click" />
-                            <MenuItem x:Name="ClockTime60MenuItem" Header="60 seconds" Click="ClockTime60_Click" />
-                        </MenuItem>
-                        <MenuItem Header="Time format">
-                            <MenuItem x:Name="Clock24MenuItem" Header="24-hour" Click="Clock24_Click" />
-                            <MenuItem x:Name="Clock12MenuItem" Header="12-hour (AM/PM)" Click="Clock12_Click" />
-                        </MenuItem>
-                    </MenuItem>
                     <MenuItem Header="Animations per cycle">
                         <MenuItem x:Name="Animations1MenuItem" Header="1 animation" Click="Animations1_Click" />
                         <MenuItem x:Name="Animations3MenuItem" Header="3 animations" Click="Animations3_Click" />
@@ -72,17 +59,30 @@
                             <MenuItem x:Name="Brightness100MenuItem" Header="100 %" Click="Brightness100_Click" />
                         </MenuItem>
                         <MenuItem x:Name="GlowMenuItem" Header="Glow" Click="Glow_Click" />
-                    </MenuItem>
-                    <Separator />
-                    <MenuItem Header="Date">
-                        <MenuItem Header="Show date (D)" Click="ShowDate_Click" />
-                        <MenuItem Header="Date format">
-                            <MenuItem x:Name="DateIsoMenuItem" Header="YYYY-MM-DD (ISO)" Click="DateIso_Click" />
-                            <MenuItem x:Name="DateEuropeanMenuItem" Header="DD/MM/YYYY" Click="DateEuropean_Click" />
-                            <MenuItem x:Name="DateUsMenuItem" Header="MM/DD/YYYY" Click="DateUs_Click" />
-                            <MenuItem x:Name="DateDotsMenuItem" Header="DD.MM.YYYY" Click="DateDots_Click" />
+                        <MenuItem Header="Clock">
+                            <MenuItem Header="Show clock (T)" Click="ShowTime_Click" />
+                            <MenuItem x:Name="ShowSecondsMenuItem" Header="Show seconds" Click="ShowSeconds_Click" />
+                            <MenuItem Header="Clock duration">
+                                <MenuItem x:Name="ClockTime10MenuItem" Header="10 seconds" Click="ClockTime10_Click" />
+                                <MenuItem x:Name="ClockTime30MenuItem" Header="30 seconds" Click="ClockTime30_Click" />
+                                <MenuItem x:Name="ClockTime60MenuItem" Header="60 seconds" Click="ClockTime60_Click" />
+                            </MenuItem>
+                            <MenuItem Header="Time format">
+                                <MenuItem x:Name="Clock24MenuItem" Header="24-hour" Click="Clock24_Click" />
+                                <MenuItem x:Name="Clock12MenuItem" Header="12-hour (AM/PM)" Click="Clock12_Click" />
+                            </MenuItem>
+                        </MenuItem>
+                        <MenuItem Header="Date">
+                            <MenuItem Header="Show date (D)" Click="ShowDate_Click" />
+                            <MenuItem Header="Date format">
+                                <MenuItem x:Name="DateIsoMenuItem" Header="YYYY-MM-DD (ISO)" Click="DateIso_Click" />
+                                <MenuItem x:Name="DateEuropeanMenuItem" Header="DD/MM/YYYY" Click="DateEuropean_Click" />
+                                <MenuItem x:Name="DateUsMenuItem" Header="MM/DD/YYYY" Click="DateUs_Click" />
+                                <MenuItem x:Name="DateDotsMenuItem" Header="DD.MM.YYYY" Click="DateDots_Click" />
+                            </MenuItem>
                         </MenuItem>
                     </MenuItem>
+                    <Separator />
                     <MenuItem Header="Fullscreen (F11)" Click="Fullscreen_Click" />
                     <Separator />
                     <MenuItem Header="Language">
