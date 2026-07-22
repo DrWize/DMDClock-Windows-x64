@@ -44,6 +44,21 @@ public sealed class ClockFrameFactoryTests
         Assert.Contains((byte)15, frame.Intensities.ToArray());
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void Create_CanHideSecondsInBothClockFormats(bool twelveHour)
+    {
+        var frame = ClockFrameFactory.Create(
+            new DateTimeOffset(2026, 7, 23, 13, 5, 9, TimeSpan.Zero),
+            twelveHour,
+            showSeconds: false);
+
+        Assert.Equal(128, frame.Width);
+        Assert.Equal(32, frame.Height);
+        Assert.Contains((byte)15, frame.Intensities.ToArray());
+    }
+
     [Fact]
     public void CreateInformation_HandlesLongNamesAndSwedishCharacters()
     {

@@ -26,6 +26,7 @@
   "_comment_time": "Clock labels. Keep the numeric durations and AM/PM meaning intact.",
   "clock": "",
   "showClock": "",
+  "showSeconds": "",
   "clockTime": "",
   "seconds5": "",
   "seconds10": "",

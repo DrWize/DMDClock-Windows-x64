@@ -7,7 +7,7 @@
   "animationGap": "Tid mellan animationer", "noPause": "Ingen paus", "seconds5": "5 sekunder",
   "appearance": "Utseende", "colorTheme": "Färgtema", "orange": "Klassisk orange", "red": "Röd", "plasma": "Plasma", "monochrome": "Monokrom", "brightness": "Ljusstyrka", "glow": "Glöd",
   "showClock": "Visa klocka (T)", "showDate": "Visa datum (D)", "fullscreen": "Helskärm (F11)",
-  "clock": "Klocka", "timeFormat": "Tidsformat", "hour24": "24-timmars", "hour12": "12-timmars (FM/EM)",
+  "clock": "Klocka", "showSeconds": "Visa sekunder", "timeFormat": "Tidsformat", "hour24": "24-timmars", "hour12": "12-timmars (FM/EM)",
   "date": "Datum", "dateFormat": "Datumformat", "dateIso": "ÅÅÅÅ-MM-DD (ISO)", "dateEuropean": "DD/MM/ÅÅÅÅ", "dateUs": "MM/DD/ÅÅÅÅ", "dateDots": "DD.MM.ÅÅÅÅ",
   "language": "Språk", "english": "Engelska", "swedish": "Svenska", "help": "Hjälp – Alien Tech på GitHub", "exit": "Avsluta"
 }

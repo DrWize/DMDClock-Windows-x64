@@ -52,8 +52,17 @@ public static class ClockFrameFactory
         [' '] = ["000", "000", "000", "000", "000", "000", "000"]
     };
 
-    public static DmdFrame Create(DateTimeOffset time, bool twelveHour = false) =>
-        CreateText(time.ToString(twelveHour ? "hh:mm:ss tt" : "HH:mm:ss", CultureInfo.InvariantCulture), twelveHour ? 2 : 3, 64, 16);
+    public static DmdFrame Create(DateTimeOffset time, bool twelveHour = false, bool showSeconds = true)
+    {
+        var format = (twelveHour, showSeconds) switch
+        {
+            (true, true) => "hh:mm:ss tt",
+            (true, false) => "hh:mm tt",
+            (false, true) => "HH:mm:ss",
+            _ => "HH:mm"
+        };
+        return CreateText(time.ToString(format, CultureInfo.InvariantCulture), twelveHour ? 2 : 3, 64, 16);
+    }
 
     public static DmdFrame CreateDate(DateTimeOffset time, string format = "yyyy-MM-dd") =>
         CreateText(time.ToString(format, CultureInfo.InvariantCulture), scale: 2, 64, 16);

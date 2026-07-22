@@ -20,7 +20,7 @@ The active project scope is the original single-color DMD format. Full-color Ser
 - DotClk `.scn` playback with storyboard timing, masks, blanking and clock layers
 - Automatic clock/animation cycles with configurable duration, count and gaps
 - Sequential or random playback
-- 12-hour clock with AM/PM or 24-hour clock
+- 12-hour clock with AM/PM or 24-hour clock, with optional seconds
 - ISO, European, US and dot-separated date formats
 - Recursive `./scenes` library with incremental rescanning and file watching
 - Optional `scene-metadata.json` for game, manufacturer and sequence information

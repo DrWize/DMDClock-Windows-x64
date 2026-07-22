@@ -21,12 +21,13 @@ public sealed record DmdClockSettings(
     bool? ShowAnimationInfo,
     string? Language,
     string? ClockFormat,
-    string? DateFormat)
+    string? DateFormat,
+    bool? ShowSeconds)
 {
     public const int CurrentSchemaVersion = 1;
 
     public static DmdClockSettings Default { get; } = new(
-        CurrentSchemaVersion, true, false, 30, 1, 0, DmdColorPreset.Orange, 100, true, true, "en", "24", "yyyy-MM-dd");
+        CurrentSchemaVersion, true, false, 30, 1, 0, DmdColorPreset.Orange, 100, true, true, "en", "24", "yyyy-MM-dd", true);
 
     public DmdClockSettings Normalize() => this with
     {
@@ -40,6 +41,7 @@ public sealed record DmdClockSettings(
         ShowAnimationInfo = ShowAnimationInfo ?? true,
         Language = Language is "sv" ? "sv" : "en",
         ClockFormat = ClockFormat is "12" ? "12" : "24",
-        DateFormat = DateFormat is "dd/MM/yyyy" or "MM/dd/yyyy" or "dd.MM.yyyy" ? DateFormat : "yyyy-MM-dd"
+        DateFormat = DateFormat is "dd/MM/yyyy" or "MM/dd/yyyy" or "dd.MM.yyyy" ? DateFormat : "yyyy-MM-dd",
+        ShowSeconds = ShowSeconds ?? true
     };
 }

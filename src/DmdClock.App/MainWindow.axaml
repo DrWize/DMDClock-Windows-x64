@@ -35,6 +35,7 @@
                     <MenuItem x:Name="AnimationInfoMenuItem" Header="Animation information (I)" Click="AnimationInfo_Click" />
                     <MenuItem Header="Clock">
                         <MenuItem Header="Show clock (T)" Click="ShowTime_Click" />
+                        <MenuItem x:Name="ShowSecondsMenuItem" Header="Show seconds" Click="ShowSeconds_Click" />
                         <MenuItem Header="Clock duration">
                             <MenuItem Header="10 seconds" Click="ClockTime10_Click" />
                             <MenuItem Header="30 seconds" Click="ClockTime30_Click" />

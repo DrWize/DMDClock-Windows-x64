@@ -343,7 +343,7 @@ public partial class MainWindow : Window
         _lastClockRender = now;
         Display.Frame = _displayMode == DisplayMode.Date
             ? ClockFrameFactory.CreateDate(now, _settings.DateFormat ?? "yyyy-MM-dd")
-            : ClockFrameFactory.Create(now, _settings.ClockFormat == "12");
+            : ClockFrameFactory.Create(now, _settings.ClockFormat == "12", _settings.ShowSeconds ?? true);
     }
 
     private DmdFrame RenderPlaybackFrame(DateTimeOffset now)
@@ -352,7 +352,7 @@ public partial class MainWindow : Window
         var storyboard = playback.Storyboard;
         var clock = storyboard.ClockStyle == 1
             ? ClockFrameFactory.CreateCompactTime(now, storyboard.CustomX, storyboard.CustomY, _settings.ClockFormat == "12")
-            : ClockFrameFactory.Create(now, _settings.ClockFormat == "12");
+            : ClockFrameFactory.Create(now, _settings.ClockFormat == "12", _settings.ShowSeconds ?? true);
         return DmdFrameCompositor.Compose(playback.CurrentFrame, clock, playback.ClockAbove);
     }
 
@@ -636,6 +636,7 @@ public partial class MainWindow : Window
         SwedishLanguageMenuItem.Header = Check(_settings.Language == "sv", L("swedish"));
         Clock24MenuItem.Header = Check(_settings.ClockFormat != "12", L("hour24"));
         Clock12MenuItem.Header = Check(_settings.ClockFormat == "12", L("hour12"));
+        ShowSecondsMenuItem.Header = Check(_settings.ShowSeconds ?? true, L("showSeconds"));
         var dateFormat = _settings.DateFormat ?? "yyyy-MM-dd";
         DateIsoMenuItem.Header = Check(dateFormat == "yyyy-MM-dd", L("dateIso"));
         DateEuropeanMenuItem.Header = Check(dateFormat == "dd/MM/yyyy", L("dateEuropean"));
@@ -674,6 +675,14 @@ public partial class MainWindow : Window
     private void SetClockFormat(string format)
     {
         _settings = (_settings with { ClockFormat = format }).Normalize();
+        ApplySettingsToMenu();
+        SaveSettings();
+        if (_displayMode == DisplayMode.Time) UpdateClockOrDate();
+    }
+
+    private void ToggleShowSeconds()
+    {
+        _settings = (_settings with { ShowSeconds = !(_settings.ShowSeconds ?? true) }).Normalize();
         ApplySettingsToMenu();
         SaveSettings();
         if (_displayMode == DisplayMode.Time) UpdateClockOrDate();
@@ -840,6 +849,7 @@ public partial class MainWindow : Window
     private void SwedishLanguage_Click(object? sender, RoutedEventArgs e) => SetLanguage("sv");
     private void Clock24_Click(object? sender, RoutedEventArgs e) => SetClockFormat("24");
     private void Clock12_Click(object? sender, RoutedEventArgs e) => SetClockFormat("12");
+    private void ShowSeconds_Click(object? sender, RoutedEventArgs e) => ToggleShowSeconds();
     private void DateIso_Click(object? sender, RoutedEventArgs e) => SetDateFormat("yyyy-MM-dd");
     private void DateEuropean_Click(object? sender, RoutedEventArgs e) => SetDateFormat("dd/MM/yyyy");
     private void DateUs_Click(object? sender, RoutedEventArgs e) => SetDateFormat("MM/dd/yyyy");

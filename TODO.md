@@ -145,6 +145,7 @@ Föreslaget innehåll i högerklicksmenyn:
 
 - [x] Valbart 24-timmarsformat
 - [x] Valbart 12-timmarsformat
+- [x] Valbar visning av sekunder
 - [x] Valbara vanliga datumformat: ISO, europeiskt, amerikanskt och punktseparerat
 - [ ] Valbar datumvisning
 - [ ] Visa veckodag

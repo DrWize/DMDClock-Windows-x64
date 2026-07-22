@@ -7,7 +7,7 @@
   "animationGap": "Time between animations", "noPause": "No pause", "seconds5": "5 seconds",
   "appearance": "Appearance", "colorTheme": "Color theme", "orange": "Classic orange", "red": "Red", "plasma": "Plasma", "monochrome": "Monochrome", "brightness": "Brightness", "glow": "Glow",
   "showClock": "Show clock (T)", "showDate": "Show date (D)", "fullscreen": "Fullscreen (F11)",
-  "clock": "Clock", "timeFormat": "Time format", "hour24": "24-hour", "hour12": "12-hour (AM/PM)",
+  "clock": "Clock", "showSeconds": "Show seconds", "timeFormat": "Time format", "hour24": "24-hour", "hour12": "12-hour (AM/PM)",
   "date": "Date", "dateFormat": "Date format", "dateIso": "YYYY-MM-DD (ISO)", "dateEuropean": "DD/MM/YYYY", "dateUs": "MM/DD/YYYY", "dateDots": "DD.MM.YYYY",
   "language": "Language", "english": "English", "swedish": "Swedish", "help": "Help – Alien Tech on GitHub", "exit": "Exit"
 }

@@ -13,7 +13,7 @@ public sealed class DmdClockSettingsStoreTests
         try
         {
             await store.SaveAtomicAsync(new DmdClockSettings(
-                1, true, true, 1, 99, 9999, DmdColorPreset.Plasma, 999, false, false, "sv", "12", "dd/MM/yyyy"), path);
+                1, true, true, 1, 99, 9999, DmdColorPreset.Plasma, 999, false, false, "sv", "12", "dd/MM/yyyy", false), path);
             var loaded = await store.LoadAsync(path);
 
             Assert.True(loaded.RandomPlayback);
@@ -27,6 +27,7 @@ public sealed class DmdClockSettingsStoreTests
             Assert.Equal("sv", loaded.Language);
             Assert.Equal("12", loaded.ClockFormat);
             Assert.Equal("dd/MM/yyyy", loaded.DateFormat);
+            Assert.False(loaded.ShowSeconds);
         }
         finally
         {
@@ -56,6 +57,7 @@ public sealed class DmdClockSettingsStoreTests
             Assert.Equal("en", loaded.Language);
             Assert.Equal("24", loaded.ClockFormat);
             Assert.Equal("yyyy-MM-dd", loaded.DateFormat);
+            Assert.True(loaded.ShowSeconds);
         }
         finally
         {
