@@ -300,7 +300,7 @@ public partial class MainWindow : Window
                 var cancellation = new CancellationTokenSource();
                 _informationCancellation = cancellation;
                 AnimationGameText.Text = metadata.Game ?? "Okänt spel";
-                AnimationSequenceText.Text = $"Sekvens: {sequence}";
+                AnimationSequenceText.Text = sequence;
                 AnimationInfoOverlay.IsVisible = true;
                 LogDisplayedInformation(path, metadata, sequence);
                 try

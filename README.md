@@ -82,7 +82,7 @@ Under **Appearance**, foreground and background colors can be selected with an R
 
 Five multi-color DMD themes are included: Neon sunset, Cyber ocean, Toxic arcade, Vaporwave and Aurora. Each combines a horizontal two-color dot gradient, matching glow and a dark background while remaining compatible with the original four-bit DMD frames.
 
-Seven static Commodore 64-inspired raster themes are also available: blue round raster, red round raster, earthtone raster, metal raster, interlaced blue, extruded cyan and C64 rainbow. They use vertical bands based on the classic fixed C64 palette. The experimental Secret Purple Mix is intentionally not included.
+Seven static Commodore 64-inspired raster themes are also available: blue round raster, red round raster, earthtone raster, metal raster, interlaced blue, extruded cyan and C64 rainbow. They use continuous vertical color bands based on the classic fixed C64 palette without black separator lines. The experimental Secret Purple Mix is intentionally not included.
 
 The mouse pointer automatically disappears after five seconds without movement while it is over the display. Moving the mouse makes it visible again immediately.
 

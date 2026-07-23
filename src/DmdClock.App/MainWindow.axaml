@@ -165,7 +165,7 @@
                            FontFamily="Inter"
                            FontSize="12"
                            Foreground="#D8FFFFFF" />
-                <TextBlock Text="DrWize - 2027 - DrWize/DMDClock-Windows-x64"
+                <TextBlock Text="DrWize - DrWize/DMDClock-Windows-x64"
                            HorizontalAlignment="Center"
                            FontFamily="Inter"
                            FontSize="10"

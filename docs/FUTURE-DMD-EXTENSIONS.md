@@ -1,76 +1,76 @@
-# Framtida stöd med DMD Extensions som referens
+# Future DMD Extensions support
 
-> Parkerad framtidsplan: aktiv utveckling ska tills vidare endast omfatta den gamla 128 × 32-displayen och 4-bitars monokroma SCN-filer. Serum, fullfärg, större upplösningar och DMD Extensions får inte kopplas in i huvudappen förrän denna avgränsning ändras uttryckligen.
+> Parked future plan: active development is currently limited to the classic 128×32 display and four-bit monochrome SCN files. Serum, full color, larger resolutions, and DMD Extensions must not be connected to the main application until this scope is explicitly changed.
 
-`freezy/dmd-extensions` är en framtida teknisk referens, inte ett beroende i den nuvarande builden:
+`freezy/dmd-extensions` is a future technical reference, not a dependency of the current build:
 
 https://github.com/freezy/dmd-extensions
 
-Nuvarande DMDClock-mål förblir stabil uppspelning av DotClk SCN i 128 × 32 och 4-bitars ljusstyrka. Kärnan ska senare kunna utökas utan att bryta detta format.
+DMDClock's current goal remains stable playback of DotClk SCN files at 128×32 with four-bit intensity. The core should later be extensible without breaking this format.
 
-## Planerad arkitektur
+## Planned architecture
 
-1. Ersätt fasta 128 × 32-antaganden i den generella bildkärnan med ett versionsmärkt bildformat som anger bredd, höjd, pixel-/färgformat och stride.
-2. Behåll en optimerad kompatibilitetsväg för nuvarande 128 × 32 SCN och dess transparensmasker.
-3. Lägg till färgformat stegvis: 4-bitars monokrom, indexerad palett och RGB24.
-4. Lägg till explicita skalningslägen: heltalsskalning, fit, fill och stretch. Testa minst 128 × 32, 192 × 64 och 256 × 64.
-5. Separera bildkälla, komposition, skalning och utmatning så att Windows, Raspberry Pi, ESP32-paket och eventuell fysisk DMD-utmatning kan dela testvektorer.
-6. Utred en valfri adapter för DMD Extensions, dess nätverksgränssnitt eller stödda enheter först efter att den lokala färgrenderaren är stabil.
+1. Replace fixed 128×32 assumptions in the general image core with a versioned frame format that specifies width, height, pixel/color format, and stride.
+2. Retain an optimized compatibility path for current 128×32 SCN files and their transparency masks.
+3. Add color formats incrementally: four-bit monochrome, indexed palette, and RGB24.
+4. Add explicit scaling modes: integer scaling, fit, fill, and stretch. Test at least 128×32, 192×64, and 256×64.
+5. Separate frame source, composition, scaling, and output so Windows, Raspberry Pi, ESP32 packages, and possible physical DMD output can share test vectors.
+6. Investigate an optional adapter for DMD Extensions, its network interface, or supported devices only after the local color renderer is stable.
 
-## Färg och media
+## Color and media
 
-Följande ska utredas separat och vara valfria:
+The following should be investigated separately and remain optional:
 
-- full RGB-grafik och RGB24-utmatning
-- Serum-färgläggning samt VNI/PAL/PAC-kompatibilitet
-- PNG, GIF och andra mediaformat
-- nätverksströmning till eller från externa DMD-enheter
-- hårdvara såsom PIN2DMD, Pixelcade, PinDMD och ZeDMD
+- full RGB graphics and RGB24 output
+- Serum colorization and VNI/PAL/PAC compatibility
+- PNG, GIF, and other media formats
+- network streaming to or from external DMD devices
+- hardware such as PIN2DMD, Pixelcade, PinDMD, and ZeDMD
 
-## Serum och ColorizingDMD
+## Serum and ColorizingDMD
 
-Planen bygger även på följande arbetsflödesguide:
+The plan also uses the following workflow guide:
 
 https://www.pincabpassion.net/t15414-comprehensive-tuto-about-colorizingdmd
 
-Guiden beskriver Serum/cRom som ett tvåstegsflöde:
+The guide describes Serum/cRom as a two-stage workflow:
 
-1. **Identifiering:** en inkommande 2- eller 4-bitars DMD-bild matchas mot kända ramar. Jämförelsemasker ignorerar dynamiska områden såsom poäng, bollar och spelaruppgifter. Maskerna ska återanvändas där det går eftersom många jämförelser kostar CPU.
-2. **Färgläggning:** den identifierade ramen får en paletterad 6-bitarsbild med upp till 64 RGB-färger. Dynamiska originalpixlar färgläggs i realtid genom palettset och områdesmasker.
+1. **Identification:** an incoming two- or four-bit DMD frame is matched against known frames. Comparison masks ignore dynamic areas such as scores, balls, and player data. Masks should be reused where possible because many comparisons consume CPU time.
+2. **Colorization:** the identified frame receives a palettized six-bit image with up to 64 RGB colors. Dynamic original pixels are colorized in real time through palette sets and area masks.
 
-Serum-funktioner att ta hänsyn till i ett framtida, valfritt lager:
+Serum features to consider in a future optional layer:
 
-- upp till 64-färgspalett per relevant scen/ram
-- jämförelsemasker för statiska identifieringsområden
-- dynamiska färgset och masker för poäng och annan varierande text
-- sprites med begränsade detektionsområden för rörliga objekt
-- fasta bakgrunder under dynamiskt innehåll
-- tidsstyrda färgrotationer och gradienter
-- bild- och videoimport för att skapa paletterade ramar
-- frame dumps med tidskod som reproducerbart testunderlag
-- förhandsvisning av original och färglagd utdata med verkliga bildtider
+- palettes of up to 64 colors per relevant scene/frame
+- comparison masks for static identification areas
+- dynamic color sets and masks for scores and other changing text
+- sprites with limited detection areas for moving objects
+- fixed backgrounds beneath dynamic content
+- timed color rotations and gradients
+- image and video import for creating palettized frames
+- frame dumps with timestamps as reproducible test data
+- preview of original and colorized output using real frame timings
 
-### Föreslagen implementeringsordning
+### Suggested implementation order
 
-Status 2026-07-22: en isolerad prototyp för steg 1–4 finns och är testad i den plattformsoberoende kärnan. Den är fryst, används inte av appens UI och ska inte byggas vidare eller kopplas till en extern `.cRom`-importör under det aktiva gamla-display-spåret.
+Status: an isolated prototype for steps 1–4 exists and is tested in the cross-platform core. It is frozen, is not used by the application UI, and must not be extended or connected to an external `.cRom` importer while the classic-display track remains active.
 
-1. Skapa testvektorer från syntetiska frame dumps; distribuera inte ROM-data eller tredjepartsfärgläggningar utan klar rättighet.
-2. Implementera en fristående 6-bitars palettram och konvertering till RGB24.
-3. Implementera deterministisk identifiering med jämförelsemask och diagnostik för ingen, en eller flera träffar.
-4. Lägg till statisk palettfärgläggning och fallback till den ursprungliga monokroma ramen när ingen regel matchar.
-5. Lägg till dynamiska palettset och områdesmasker.
-6. Lägg därefter till bakgrunder, färgrotationer och sprites, med tydliga CPU-budgetar.
-7. Verifiera resultatet mot DMD Extensions i en separat integrationstestprofil.
-8. Lägg till import av `.cRom`/Serum först när formatversioner, licens och kompatibilitet är dokumenterade med testfiler som får distribueras.
+1. Create test vectors from synthetic frame dumps; do not distribute ROM data or third-party colorizations without clear rights.
+2. Implement a standalone six-bit palette frame and RGB24 conversion.
+3. Implement deterministic identification using comparison masks and diagnostics for zero, one, or multiple matches.
+4. Add static palette colorization and fallback to the original monochrome frame when no rule matches.
+5. Add dynamic palette sets and area masks.
+6. Then add backgrounds, color rotations, and sprites with explicit CPU budgets.
+7. Verify results against DMD Extensions in a separate integration-test profile.
+8. Add `.cRom`/Serum import only after format versions, licensing, and compatibility are documented with distributable test files.
 
-### Prestanda och portabilitet
+### Performance and portability
 
-En 64-färgs palettram är särskilt intressant för Raspberry Pi och framtida seriell DMD-utmatning eftersom den kräver mindre bandbredd än RGB24. Desktop-renderaren kan expandera palettindex till RGB24 sent i renderingskedjan, medan ESP32-S3-paket kan behålla palettformatet. Matchning, sprites och färgrotationer ska mätas separat så att en långsam regel inte stoppar klockan eller animationsuppspelningen.
+A 64-color palette frame is especially interesting for Raspberry Pi and future serial DMD output because it requires less bandwidth than RGB24. The desktop renderer can expand palette indices to RGB24 late in the rendering pipeline, while ESP32-S3 packages can retain the palette format. Matching, sprites, and color rotations should be measured independently so one slow rule cannot stop the clock or animation playback.
 
-### Innehåll och distribution
+### Content and distribution
 
-Serum-editorn och formatimplementationen är GPL-2.0. Guiden anger dessutom villkor för kreditering och delning av skapade färgläggningar. Varje färgläggningsfil måste därför ha eget ursprung, licens, upphovsperson och distributionsstatus i bibliotekets manifest. Appen ska kunna använda lokalt tillagda filer utan att de automatiskt följer med installationen.
+The Serum editor and format implementation use GPL-2.0. The guide also specifies attribution and sharing conditions for created colorizations. Each colorization file must therefore record its origin, license, author, and distribution status in the library manifest. The application should support locally added files without automatically including them in the installation.
 
-## Licensgräns
+## License boundary
 
-DMD Extensions är GPL-2.0. Innan bibliotek, DLL:er eller källkod integreras ska projektets egen licens beslutas och konsekvenserna granskas. En separat process eller dokumenterat protokoll kan vara en bättre integrationsgräns, men även detta ska verifieras innan distribution.
+DMD Extensions uses GPL-2.0. Before libraries, DLLs, or source code are integrated, the project's own license must be decided and the consequences reviewed. A separate process or documented protocol may be a better integration boundary, but this must also be verified before distribution.

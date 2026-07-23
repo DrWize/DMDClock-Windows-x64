@@ -52,8 +52,8 @@ public sealed class DmdDisplay : Control
             DmdColorPreset.C64RedRound => Raster(C64Red, C64LightRed, C64Orange, C64Yellow, C64White, C64Yellow, C64Orange, C64LightRed, C64Red),
             DmdColorPreset.C64Earthtone => Raster(C64Brown, C64Red, C64Orange, C64LightRed, C64Yellow, C64LightRed, C64Orange, C64Red, C64Brown),
             DmdColorPreset.C64Metal => Raster(C64DarkGray, C64Gray, C64LightGray, C64White, C64LightGray, C64Gray, C64DarkGray),
-            DmdColorPreset.C64InterlacedBlue => Raster(C64Blue, C64Black, C64LightBlue, C64Black, C64Cyan, C64Black, C64White, C64Black, C64Cyan, C64Black, C64LightBlue, C64Black, C64Blue),
-            DmdColorPreset.C64ExtrudedCyan => Raster(C64Black, C64Blue, C64Cyan, C64White, C64Cyan, C64Blue, C64Black, C64Blue, C64Cyan, C64LightBlue, C64Cyan, C64Blue, C64Black),
+            DmdColorPreset.C64InterlacedBlue => Raster(C64Blue, C64LightBlue, C64Blue, C64Cyan, C64Blue, C64White, C64Blue, C64Cyan, C64Blue, C64LightBlue, C64Blue),
+            DmdColorPreset.C64ExtrudedCyan => Raster(C64Blue, C64Cyan, C64White, C64Cyan, C64Blue, C64LightBlue, C64Blue, C64Cyan, C64LightBlue, C64Cyan, C64Blue),
             DmdColorPreset.C64Rainbow => Raster(C64Red, C64Orange, C64Yellow, C64LightGreen, C64Green, C64Cyan, C64LightBlue, C64Blue, C64Purple, C64LightRed),
             _ => Solid(Color.FromRgb(255, 112, 14))
         };
@@ -167,7 +167,6 @@ public sealed class DmdDisplay : Control
         DmdColorPreset.C64Rainbow;
 
     // Colodore-style approximations of the fixed Commodore 64 palette.
-    private static readonly Color C64Black = Color.FromRgb(0x00, 0x00, 0x00);
     private static readonly Color C64White = Color.FromRgb(0xFF, 0xFF, 0xFF);
     private static readonly Color C64Red = Color.FromRgb(0x68, 0x37, 0x2B);
     private static readonly Color C64Cyan = Color.FromRgb(0x70, 0xA4, 0xB2);

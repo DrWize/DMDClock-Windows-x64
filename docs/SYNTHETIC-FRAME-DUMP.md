@@ -1,6 +1,6 @@
-# Syntetiskt frame-dump-format
+# Synthetic frame-dump format
 
-Detta är ett litet, versionsmärkt DMDClock-testformat. Det är inte ett påstående om full kompatibilitet med alla VPinMAME-dumpvarianter. Testfilerna är egenproducerade och innehåller ingen ROM-data.
+This is a small, versioned DMDClock test format. It does not claim full compatibility with every VPinMAME dump variant. The test files are created specifically for this project and contain no ROM data.
 
 ```text
 DMD-DUMP 1 width=4 height=2 bpp=2
@@ -12,10 +12,10 @@ FRAME timestampMs=40
 3010
 ```
 
-- Version 1 stöder 2- och 4-bitars monokroma källramar.
-- Varje pixel skrivs som ett hexadecimalt tecken.
-- Varje ram har en icke-negativ tidskod i millisekunder.
-- Tidskoder måste vara i stigande ordning.
-- Tomma rader och rader som börjar med `#` ignoreras mellan poster.
+- Version 1 supports two- and four-bit monochrome source frames.
+- Each pixel is represented by one hexadecimal character.
+- Each frame has a non-negative timestamp in milliseconds.
+- Timestamps must be in ascending order.
+- Empty lines and lines beginning with `#` are ignored between entries.
 
-Formatet används för reproducerbara tester av parsing, maskmatchning, palettfärgläggning och fallback. En framtida VPinMAME-importör ska konvertera externa dumpar till samma interna `DmdFrameDump`-modell.
+The format is used for reproducible tests of parsing, mask matching, palette colorization, and fallback behavior. A future VPinMAME importer should convert external dumps to the same internal `DmdFrameDump` model.

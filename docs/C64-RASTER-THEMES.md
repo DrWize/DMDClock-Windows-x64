@@ -6,8 +6,8 @@ These appearance concepts keep the original 128×32 four-bit DMD frame intact. C
 
 - Classic C64 raster bars change border or background color by raster line. For DMDClock, the equivalent is selecting a palette entry from the dot's vertical row.
 - Mirrored ramps from dark to bright and back create a rounded luminous bar.
-- Interlacing inserts background-colored rows between palette entries, while dithering alternates available colors to suggest intermediate shades.
-- Extruded patterns repeat portions of a ramp, remove the brightest entry on later repetitions and use black separators to create depth.
+- Interlacing alternates dark blue with lighter palette entries to suggest intermediate shades without introducing black lines.
+- Extruded patterns repeat portions of a ramp and remove the brightest entry on later repetitions to create depth without black separators.
 - Color-table rotation can animate a raster bar smoothly. DMDClock should use a slow movement rather than rapid full-frame switching.
 - Rapid switching can create perceived colors, but combinations with unequal luminance visibly flicker. It should remain an optional accessibility-sensitive experiment, not a default theme.
 
