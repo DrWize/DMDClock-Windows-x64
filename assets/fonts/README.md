@@ -11,7 +11,17 @@ Files in this directory are copied into application publish output under `fonts/
 - SHA-256: `4989B125924991B90D05B2D16E0E388C48F7D5BB8B30539BBF9C755278D0CCAF`
 - License: SIL Open Font License 1.1; see `Inter/OFL-1.1.txt`
 
-The original DotClk `.fnt` files are not bundled here. They remain local external resources until their redistribution terms have been verified.
+## Original DotClk clock fonts
+
+`DotClk/ALTERN8.fnt`, `FISHY.fnt`, `TREK.fnt`, and `TWILIGHT.fnt` are the original
+DotClk clock resources. They are embedded into the application assembly and are not
+copied to the external `fonts/` directory. The application preserves the original
+digit and clock glyphs and supplies its own dot-matrix date separators where a font
+does not contain them.
+
+- Source: https://github.com/DrWize/DotClk-Resources
+- Format: DotClk version 1, four-bit bitmap font
+- Upstream repository does not currently include an explicit license file
 
 ## Pinball by Fontalicious
 

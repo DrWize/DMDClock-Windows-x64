@@ -22,6 +22,13 @@ $timestamp = Get-Date -Format 'yyyyMMdd-HHmmss'
 $buildId = "1.0.0+$timestamp.$Runtime"
 $archiveDirectory = Join-Path $archiveRoot "$timestamp-$Runtime"
 $stagingDirectory = Join-Path $outputRoot ".staging\$timestamp-$Runtime"
+$portableZipName = "DMDClock-$Runtime-portable.zip"
+$stagingZipPath = Join-Path $outputRoot ".staging\$timestamp-$portableZipName"
+$standaloneCurrentDirectory = Join-Path $outputRoot "current\$Runtime-standalone"
+$standaloneArchiveDirectory = Join-Path $archiveRoot "$timestamp-$Runtime-standalone"
+$standaloneStagingDirectory = Join-Path $outputRoot ".staging\$timestamp-$Runtime-standalone"
+$standaloneZipName = "DMDClock-$Runtime-standalone.zip"
+$standaloneStagingZipPath = Join-Path $outputRoot ".staging\$timestamp-$standaloneZipName"
 $projectFile = Join-Path $projectRoot 'src\DmdClock.App\DmdClock.App.csproj'
 
 $localDotnet = Join-Path (Split-Path -Parent $projectRoot) '.tools\dotnet10\dotnet.exe'
@@ -86,6 +93,11 @@ function Stop-DmdClockProcesses {
 Assert-WithinOutputRoot $currentDirectory
 Assert-WithinOutputRoot $archiveDirectory
 Assert-WithinOutputRoot $stagingDirectory
+Assert-WithinOutputRoot $stagingZipPath
+Assert-WithinOutputRoot $standaloneCurrentDirectory
+Assert-WithinOutputRoot $standaloneArchiveDirectory
+Assert-WithinOutputRoot $standaloneStagingDirectory
+Assert-WithinOutputRoot $standaloneStagingZipPath
 
 Stop-DmdClockProcesses
 
@@ -176,6 +188,92 @@ try {
     if ($Runtime -eq 'win-x64') {
         Copy-Item -LiteralPath (Join-Path $stagingDirectory 'DmdClock.App.exe') `
             -Destination (Join-Path $stagingDirectory 'DMDClock.scr') -Force
+
+        Copy-Item -LiteralPath (Join-Path $projectRoot 'README.md') `
+            -Destination (Join-Path $stagingDirectory 'README.md') -Force
+
+        if (Test-Path -LiteralPath $stagingZipPath) {
+            Remove-Item -LiteralPath $stagingZipPath -Force
+        }
+        [IO.Compression.ZipFile]::CreateFromDirectory(
+            $stagingDirectory,
+            $stagingZipPath,
+            [IO.Compression.CompressionLevel]::Optimal,
+            $false)
+        Write-Host "Created portable ZIP: $stagingZipPath"
+
+        & $dotnet publish $projectFile `
+            --configuration $Configuration `
+            --runtime $Runtime `
+            --self-contained true `
+            "-p:InformationalVersion=$buildId" `
+            "-p:PublishSingleFile=true" `
+            "-p:IncludeNativeLibrariesForSelfExtract=true" `
+            "-p:EnableCompressionInSingleFile=true" `
+            "-p:PublishTrimmed=false" `
+            "-p:DebugSymbols=false" `
+            "-p:DebugType=None" `
+            --output $standaloneStagingDirectory
+
+        if ($LASTEXITCODE -ne 0) {
+            throw "Standalone dotnet publish failed with exit code $LASTEXITCODE."
+        }
+
+        $standaloneExe = Join-Path $standaloneStagingDirectory 'DmdClock.App.exe'
+        $standaloneScr = Join-Path $standaloneStagingDirectory 'DMDClock.scr'
+        Copy-Item -LiteralPath $standaloneExe -Destination $standaloneScr -Force
+        Copy-Item -LiteralPath (Join-Path $projectRoot 'README.md') `
+            -Destination (Join-Path $standaloneStagingDirectory 'README.md') -Force
+        Copy-Item -LiteralPath (Join-Path $stagingDirectory 'SCN-COMPATIBILITY.txt') `
+            -Destination (Join-Path $standaloneStagingDirectory 'SCN-COMPATIBILITY.txt') -Force
+
+        $standaloneBuildInfo = [ordered]@{
+            buildId = $buildId
+            builtAt = (Get-Date).ToString('o')
+            runtime = $Runtime
+            configuration = $Configuration
+            selfContained = $true
+            singleFile = $true
+            screensaver = $true
+            nativeLibraryMode = 'self-extract'
+        } | ConvertTo-Json
+        Set-Content -LiteralPath (Join-Path $standaloneStagingDirectory 'build-info.json') `
+            -Value $standaloneBuildInfo -Encoding utf8
+
+        Get-ChildItem -LiteralPath $standaloneStagingDirectory -File -Recurse -Filter *.pdb |
+            Remove-Item -Force
+
+        $unexpectedDlls = @(Get-ChildItem -LiteralPath $standaloneStagingDirectory -File -Recurse -Filter *.dll)
+        if ($unexpectedDlls.Count -gt 0) {
+            throw "Standalone publish left DLL files: $($unexpectedDlls.FullName -join ', ')"
+        }
+
+        $checksumFiles = @('DmdClock.App.exe', 'DMDClock.scr')
+        $checksumLines = $checksumFiles | ForEach-Object {
+            $hash = (Get-FileHash -LiteralPath (Join-Path $standaloneStagingDirectory $_) -Algorithm SHA256).Hash
+            "$hash  $_"
+        }
+        $checksumPath = Join-Path $standaloneStagingDirectory 'SHA256SUMS.txt'
+        Set-Content -LiteralPath $checksumPath `
+            -Value $checksumLines -Encoding ascii
+        $writtenChecksums = @(Get-Content -LiteralPath $checksumPath)
+        foreach ($fileName in $checksumFiles) {
+            $expectedLine = $writtenChecksums | Where-Object { $_.EndsWith("  $fileName") }
+            $actualHash = (Get-FileHash -LiteralPath (Join-Path $standaloneStagingDirectory $fileName) -Algorithm SHA256).Hash
+            if ($expectedLine -ne "$actualHash  $fileName") {
+                throw "Standalone checksum verification failed for $fileName."
+            }
+        }
+
+        if (Test-Path -LiteralPath $standaloneStagingZipPath) {
+            Remove-Item -LiteralPath $standaloneStagingZipPath -Force
+        }
+        [IO.Compression.ZipFile]::CreateFromDirectory(
+            $standaloneStagingDirectory,
+            $standaloneStagingZipPath,
+            [IO.Compression.CompressionLevel]::Optimal,
+            $false)
+        Write-Host "Created standalone ZIP: $standaloneStagingZipPath"
     }
 
     if ((Test-Path -LiteralPath $currentDirectory) -and
@@ -193,8 +291,28 @@ try {
         Set-Content -LiteralPath (Join-Path $archiveDirectory 'archive-manifest.json') -Value $archiveManifest -Encoding utf8
 
         Write-Host "Archived previous build to: $archiveDirectory"
-        Remove-ExpiredBuildArchives
     }
+
+    if ($Runtime -eq 'win-x64' -and
+        (Test-Path -LiteralPath $standaloneCurrentDirectory) -and
+        (Get-ChildItem -LiteralPath $standaloneCurrentDirectory -Force | Select-Object -First 1)) {
+        New-Item -ItemType Directory -Force -Path $standaloneArchiveDirectory | Out-Null
+        Get-ChildItem -LiteralPath $standaloneCurrentDirectory -Force |
+            Copy-Item -Destination $standaloneArchiveDirectory -Recurse -Force
+
+        $standaloneArchiveManifest = [ordered]@{
+            archivedAt = (Get-Date).ToString('o')
+            runtime = "$Runtime-standalone"
+            configuration = $Configuration
+            source = $standaloneCurrentDirectory
+        } | ConvertTo-Json
+        Set-Content -LiteralPath (Join-Path $standaloneArchiveDirectory 'archive-manifest.json') `
+            -Value $standaloneArchiveManifest -Encoding utf8
+
+        Write-Host "Archived previous standalone build to: $standaloneArchiveDirectory"
+    }
+
+    Remove-ExpiredBuildArchives
 
     if (Test-Path -LiteralPath $currentDirectory) {
         Remove-Item -LiteralPath $currentDirectory -Recurse -Force
@@ -202,6 +320,22 @@ try {
 
     New-Item -ItemType Directory -Force -Path (Split-Path -Parent $currentDirectory) | Out-Null
     Move-Item -LiteralPath $stagingDirectory -Destination $currentDirectory
+
+    if ($Runtime -eq 'win-x64') {
+        $portableZipPath = Join-Path $currentDirectory $portableZipName
+        Move-Item -LiteralPath $stagingZipPath -Destination $portableZipPath
+        Write-Host "Portable ZIP available at: $portableZipPath"
+
+        if (Test-Path -LiteralPath $standaloneCurrentDirectory) {
+            Remove-Item -LiteralPath $standaloneCurrentDirectory -Recurse -Force
+        }
+        Move-Item -LiteralPath $standaloneStagingDirectory -Destination $standaloneCurrentDirectory
+        $standaloneZipPath = Join-Path $standaloneCurrentDirectory $standaloneZipName
+        Move-Item -LiteralPath $standaloneStagingZipPath -Destination $standaloneZipPath
+        Write-Host "Standalone build available at: $standaloneCurrentDirectory"
+        Write-Host "Standalone ZIP available at: $standaloneZipPath"
+    }
+
     Write-Host "Published new build to: $currentDirectory"
 
     if ($Runtime -eq 'win-x64' -and -not $NoStart) {
@@ -213,5 +347,14 @@ try {
 finally {
     if (Test-Path -LiteralPath $stagingDirectory) {
         Remove-Item -LiteralPath $stagingDirectory -Recurse -Force
+    }
+    if (Test-Path -LiteralPath $stagingZipPath) {
+        Remove-Item -LiteralPath $stagingZipPath -Force
+    }
+    if (Test-Path -LiteralPath $standaloneStagingDirectory) {
+        Remove-Item -LiteralPath $standaloneStagingDirectory -Recurse -Force
+    }
+    if (Test-Path -LiteralPath $standaloneStagingZipPath) {
+        Remove-Item -LiteralPath $standaloneStagingZipPath -Force
     }
 }

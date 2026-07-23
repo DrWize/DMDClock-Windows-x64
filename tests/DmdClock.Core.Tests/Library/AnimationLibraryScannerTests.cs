@@ -16,18 +16,30 @@ public sealed class AnimationLibraryScannerTests : IDisposable
         await using (var destination = File.Create(firstPath))
             await source.CopyToAsync(destination);
         await File.WriteAllBytesAsync(Path.Combine(_directory, "broken.scn"), [1, 2, 3]);
+        var warnedPath = Path.Combine(_directory, "warned.scn");
+        await using (var source = TestScnFile.Create(frameCount: 2, frameDelayMs: 0))
+        await using (var destination = File.Create(warnedPath))
+            await source.CopyToAsync(destination);
         var scanner = new AnimationLibraryScanner();
 
         var first = await scanner.ScanAsync(_directory);
-        var valid = Assert.Single(first.Items, static item => item.IsValid);
-        Assert.Single(first.Items, static item => !item.IsValid);
+        var valid = Assert.Single(first.Items, static item =>
+            item.IsValid && (item.Warnings?.Count ?? 0) == 0);
+        var warned = Assert.Single(first.Items, static item =>
+            item.IsValid && (item.Warnings?.Count ?? 0) > 0);
+        Assert.Equal("invalid-frame-delay", Assert.Single(warned.Warnings!).Code);
+        var rejected = Assert.Single(first.Items, static item => !item.IsValid);
+        Assert.Contains("[unsupported-version]", rejected.Error);
 
         var movedPath = Path.Combine(_directory, "scene10.scn");
         File.Move(firstPath, movedPath);
         var second = await scanner.ScanAsync(_directory, first);
 
-        Assert.Equal(valid.Id, Assert.Single(second.Items, static item => item.IsValid).Id);
-        Assert.Equal(["broken.scn", "scene10.scn"], second.Items.Select(static item => item.RelativePath));
+        Assert.Equal(valid.Id, Assert.Single(second.Items, static item =>
+            item.IsValid && (item.Warnings?.Count ?? 0) == 0).Id);
+        Assert.Equal(
+            ["broken.scn", "scene10.scn", "warned.scn"],
+            second.Items.Select(static item => item.RelativePath));
     }
 
     [Fact]

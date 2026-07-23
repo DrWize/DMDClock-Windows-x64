@@ -38,7 +38,8 @@ public sealed class AnimationLibraryScanner
             var lastWrite = new DateTimeOffset(info.LastWriteTimeUtc, TimeSpan.Zero);
 
             if (previousByPath.TryGetValue(relativePath, out var existing) &&
-                existing.FileSize == info.Length && existing.LastWriteUtc == lastWrite)
+                existing.FileSize == info.Length && existing.LastWriteUtc == lastWrite &&
+                existing.Warnings is not null)
             {
                 items.Add(existing);
                 continue;
@@ -62,14 +63,20 @@ public sealed class AnimationLibraryScanner
         string hash;
         ScnScene? scene = null;
         string? error = null;
+        IReadOnlyList<ScnDiagnostic> warnings = [];
         try
         {
             await using var stream = new FileStream(fullPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
             hash = Convert.ToHexString(await SHA256.HashDataAsync(stream, cancellationToken).ConfigureAwait(false));
             stream.Position = 0;
-            scene = ScnReader.Read(stream);
-            if (scene.Frames.Count == 0)
-                throw new ScnFormatException("SCN does not contain any animation frames.");
+            var inspection = ScnCompatibilityInspector.Inspect(stream);
+            scene = inspection.Scene;
+            warnings = inspection.Status == ScnCompatibilityStatus.Warned
+                ? inspection.Diagnostics
+                : [];
+            if (inspection.Status == ScnCompatibilityStatus.Rejected)
+                error = string.Join(" ", inspection.Diagnostics.Select(static diagnostic =>
+                    $"[{diagnostic.Code}] {diagnostic.Message}"));
 
             var finalInfo = new FileInfo(fullPath);
             if (finalInfo.Length != fileSize || finalInfo.LastWriteTimeUtc != lastWrite.UtcDateTime)
@@ -87,7 +94,16 @@ public sealed class AnimationLibraryScanner
                 ? moved.Id
                 : CreateStableId(relativePath);
         var duration = scene is null ? 0 : EstimateDuration(scene);
-        return new AnimationLibraryItem(id, relativePath, fileSize, lastWrite, hash, scene?.Frames.Count ?? 0, duration, error);
+        return new AnimationLibraryItem(
+            id,
+            relativePath,
+            fileSize,
+            lastWrite,
+            hash,
+            scene?.Frames.Count ?? 0,
+            duration,
+            error,
+            warnings);
     }
 
     private static long EstimateDuration(ScnScene scene)

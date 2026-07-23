@@ -43,7 +43,8 @@ public sealed record DmdClockSettings(
     string? ForegroundColor,
     string? BackgroundColor,
     int? WindowScalePercent,
-    int? FullscreenZoomPercent)
+    int? FullscreenZoomPercent,
+    string? AnimationDirectory = null)
 {
     public const int CurrentSchemaVersion = 1;
 
@@ -70,7 +71,8 @@ public sealed record DmdClockSettings(
         ForegroundColor = NormalizeColor(ForegroundColor),
         BackgroundColor = NormalizeColor(BackgroundColor) ?? "#000000",
         WindowScalePercent = NormalizeScale(WindowScalePercent),
-        FullscreenZoomPercent = NormalizeScale(FullscreenZoomPercent)
+        FullscreenZoomPercent = NormalizeScale(FullscreenZoomPercent),
+        AnimationDirectory = NormalizeDirectory(AnimationDirectory)
     };
 
     private static string? NormalizeFontFile(string? value)
@@ -94,5 +96,21 @@ public sealed record DmdClockSettings(
     {
         var clamped = Math.Clamp(value ?? 100, 5, 5000);
         return (int)Math.Round(clamped / 5d) * 5;
+    }
+
+    private static string? NormalizeDirectory(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value)) return null;
+        try
+        {
+            return Path.IsPathFullyQualified(value.Trim())
+                ? Path.GetFullPath(value.Trim())
+                : null;
+        }
+        catch (Exception exception) when (
+            exception is ArgumentException or NotSupportedException or PathTooLongException)
+        {
+            return null;
+        }
     }
 }

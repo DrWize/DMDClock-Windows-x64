@@ -28,12 +28,17 @@ public sealed class DmdClockSettingsStoreTests
     {
         var directory = Path.Combine(Path.GetTempPath(), $"dmdclock-settings-{Guid.NewGuid():N}");
         var path = Path.Combine(directory, "settings.json");
+        var animationDirectory = Path.Combine(directory, "animations");
         var store = new DmdClockSettingsStore();
         try
         {
-            await store.SaveAtomicAsync(new DmdClockSettings(
+            var settings = new DmdClockSettings(
                 1, true, true, 1, 99, 9999, DmdColorPreset.Plasma, 999, false, false, "sv", "12", "dd/MM/yyyy", false, false,
-                "Inter/InterVariable.ttf", "../outside.otf", "#1a2b3c", "invalid", -100, 99999), path);
+                "Inter/InterVariable.ttf", "../outside.otf", "#1a2b3c", "invalid", -100, 99999)
+            {
+                AnimationDirectory = animationDirectory
+            };
+            await store.SaveAtomicAsync(settings, path);
             var loaded = await store.LoadAsync(path);
 
             Assert.True(loaded.RandomPlayback);
@@ -55,6 +60,7 @@ public sealed class DmdClockSettingsStoreTests
             Assert.Equal("#000000", loaded.BackgroundColor);
             Assert.Equal(5, loaded.WindowScalePercent);
             Assert.Equal(5000, loaded.FullscreenZoomPercent);
+            Assert.Equal(Path.GetFullPath(animationDirectory), loaded.AnimationDirectory);
         }
         finally
         {
@@ -90,6 +96,7 @@ public sealed class DmdClockSettingsStoreTests
             Assert.Equal("#000000", loaded.BackgroundColor);
             Assert.Equal(100, loaded.WindowScalePercent);
             Assert.Equal(100, loaded.FullscreenZoomPercent);
+            Assert.Null(loaded.AnimationDirectory);
         }
         finally
         {

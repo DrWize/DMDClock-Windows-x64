@@ -51,7 +51,25 @@ The Windows x64 application and screensaver are functional. The current implemen
 
 Scene files are intentionally not included in this repository. The application creates or uses `./scenes` by default, scans subdirectories recursively and preserves that directory across local builds.
 
-Put `.ttf` or `.otf` files anywhere under the `fonts` directory beside the executable. Open the menu and choose **Appearance → Clock → Font** or **Appearance → Date → Font**; the font list is refreshed whenever the menu opens. Font choices and user-added font files are preserved across local builds. The built-in 5×7 font remains available as a fallback.
+ALTERN8, FISHY, TREK, and TWILIGHT are embedded clock fonts and can be selected
+independently for time and date under **Appearance → Clock → Font** and
+**Appearance → Date → Font**. All four support 12/24-hour time and every available
+date format. The application supplies matching DMD separators where an original
+font lacks `-`, `.`, or `/`.
+
+Put optional `.ttf` or `.otf` files anywhere under the `fonts` directory beside the
+executable. The font list is refreshed whenever the menu opens. Font choices and
+user-added font files are preserved across local builds. The built-in 5×7 font
+remains available as a fallback. The binary `.fnt` layout is documented in
+[`docs/DOTCLK-FNT-FORMAT.md`](docs/DOTCLK-FNT-FORMAT.md).
+
+The application remains functional without original DotClk resources: it starts with its built-in clock and waits for the user to select or add a scene library. Developers can download the original reference repositories and local test resources into the Git-ignored `external/` directory:
+
+```powershell
+./scripts/Get-OriginalResources.ps1
+```
+
+The command is safe to rerun and downloads only missing repositories. Use `-Update` to fast-forward existing clean repositories, `-Redownload` to obtain fresh copies, or `-Resource DotClk-Resources` to select a resource. See [`docs/SOURCES.md`](docs/SOURCES.md) for the official sources, safety behavior, and generated reproducibility metadata.
 
 ## Building from source
 
@@ -66,13 +84,28 @@ dotnet test DmdClock.sln -c Release
 ./scripts/Build.ps1
 ```
 
-`Build.ps1` closes a running DMDClock instance, archives the previous published build, publishes a self-contained Windows x64 build, copies the local scene library, generates compatibility/build reports and starts the new executable. Use `-NoStart` when an automatic launch is not wanted.
+`Build.ps1` closes a running DMDClock instance, archives the previous published builds, publishes the regular self-contained Windows x64 build and a standalone single-file build, copies the local scene library into the regular build, generates compatibility/build reports and checksums, creates both portable ZIPs and starts the new regular executable. Use `-NoStart` when an automatic launch is not wanted.
 
 Published files are written to:
 
 ```text
 output/current/win-x64/
+output/current/win-x64/DMDClock-win-x64-portable.zip
+output/current/win-x64-standalone/
+output/current/win-x64-standalone/DMDClock-win-x64-standalone.zip
 ```
+
+The portable ZIP contains the complete self-contained application, `DMDClock.scr`, the bundled resources, compatibility/build reports and README. Extract the ZIP before running the application or installing the screensaver.
+
+`SCN-COMPATIBILITY.txt` reports accepted, warned, and rejected file counts. Every warning or rejection includes the relative filename, a diagnostic code, and the reason. Invalid regular frame delays are reported as warnings and use the documented 100 ms playback fallback; damaged files and unsupported versions are rejected.
+
+### Standalone Windows build
+
+The standalone directory contains single-file `DmdClock.App.exe` and `DMDClock.scr` binaries with the .NET runtime, Avalonia, and native graphics libraries bundled. No adjacent runtime DLLs or installed .NET runtime are required. Native libraries are extracted automatically to the .NET temporary cache while the application runs.
+
+Translations remain external under `i18n/`, and the redistributable Inter clock font remains under `fonts/`. Downloaded `.scn` animations are deliberately excluded; select an existing scene directory in the application or create a `scenes` directory beside the binaries. Keep `i18n` beside the binaries when distributing them. `SHA256SUMS.txt` contains verified hashes for both standalone binaries.
+
+Assembly trimming remains disabled for the standalone build because Avalonia and related libraries use reflection. Trimming can be investigated separately after the untrimmed package is fully validated.
 
 The 10 newest previous builds are retained under `output/archive/`; older archives are removed automatically after a successful build. Use `-MaxArchivedBuilds` to select another retention count.
 
@@ -88,7 +121,7 @@ The mouse pointer automatically disappears after five seconds without movement w
 
 ## Windows x64 screensaver
 
-Every Windows x64 build includes `DMDClock.scr` beside `DmdClock.App.exe`. It uses the same `scenes` and `fonts` directories and the same preferences stored under `%LOCALAPPDATA%\DmdClock`.
+Every Windows x64 build includes `DMDClock.scr` beside `DmdClock.App.exe`. The standalone build provides the same pair without adjacent runtime DLLs. Both variants use the same selected scene directory, optional `fonts` directory, and preferences stored under `%LOCALAPPDATA%\DmdClock`.
 
 To install it, right-click `DMDClock.scr` and choose **Install**, then select DMDClock in Windows Screen Saver Settings. Keep the complete published directory in place because the `.scr` file uses the self-contained runtime files beside it.
 

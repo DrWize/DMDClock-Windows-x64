@@ -8,8 +8,8 @@ public sealed record AnimationLibraryItem(
     string Sha256,
     int FrameCount,
     long EstimatedDurationMs,
-    string? Error)
+    string? Error,
+    IReadOnlyList<DmdClock.Core.Scn.ScnDiagnostic>? Warnings = null)
 {
     public bool IsValid => Error is null;
 }
-

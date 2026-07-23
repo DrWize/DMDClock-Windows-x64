@@ -213,6 +213,8 @@ public partial class MainWindow : Window
         if (path is null) return;
 
         _libraryRoot = Path.GetFullPath(path);
+        _settings = (_settings with { AnimationDirectory = _libraryRoot }).Normalize();
+        SaveSettings();
         await ScanLibraryAsync(startPlayback: true);
         StartLibraryWatcher();
     }
@@ -248,7 +250,30 @@ public partial class MainWindow : Window
             _libraryPosition = currentId is null ? -1 : _playableItems.FindIndex(item => item.Id == currentId);
 
             var broken = _libraryIndex.Items.Count(static item => !item.IsValid);
-            SetStatus($"{_playableItems.Count} animationer" + (broken > 0 ? $", {broken} fel" : string.Empty));
+            var warned = _libraryIndex.Items.Count(static item =>
+                item.IsValid && (item.Warnings?.Count ?? 0) > 0);
+            foreach (var item in _libraryIndex.Items)
+            {
+                foreach (var warning in item.Warnings ?? [])
+                {
+                    await _log.WriteAsync(DateTimeOffset.UtcNow,
+                        $"scan.file status=warned path=\"{SanitizeLogValue(item.RelativePath)}\" " +
+                        $"code=\"{SanitizeLogValue(warning.Code)}\" " +
+                        $"reason=\"{SanitizeLogValue(warning.Message)}\"");
+                }
+
+                if (!item.IsValid)
+                {
+                    await _log.WriteAsync(DateTimeOffset.UtcNow,
+                        $"scan.file status=rejected path=\"{SanitizeLogValue(item.RelativePath)}\" " +
+                        $"reason=\"{SanitizeLogValue(item.Error ?? "Unknown SCN error.")}\"");
+                }
+            }
+
+            SetStatus(
+                $"{_playableItems.Count} animationer" +
+                (warned > 0 ? $", {warned} varningar" : string.Empty) +
+                (broken > 0 ? $", {broken} fel" : string.Empty));
             if (startPlayback && _playableItems.Count > 0) await PlayLibraryOffsetAsync(1);
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
@@ -267,13 +292,17 @@ public partial class MainWindow : Window
             var duration = scanEndedUtc - scanStartedUtc;
             var total = _libraryIndex?.Items.Count ?? 0;
             var valid = _libraryIndex?.Items.Count(static item => item.IsValid) ?? 0;
-            var failures = total - valid;
+            var warned = _libraryIndex?.Items.Count(static item =>
+                item.IsValid && (item.Warnings?.Count ?? 0) > 0) ?? 0;
+            var accepted = valid - warned;
+            var rejected = total - valid;
             var status = scanError is null ? "success" : "failed";
             var error = scanError is null ? string.Empty : $" error=\"{SanitizeLogValue(scanError.Message)}\"";
             await _log.WriteAsync(scanEndedUtc,
                 $"scan.end status={status} root=\"{_libraryRoot}\" startUtc={scanStartedUtc:O} " +
                 $"endUtc={scanEndedUtc:O} durationMs={duration.TotalMilliseconds:F0} " +
-                $"files={total} valid={valid} failures={failures}{error}");
+                $"files={total} accepted={accepted} warned={warned} rejected={rejected} " +
+                $"valid={valid} failures={rejected}{error}");
             _scanGate.Release();
         }
     }
@@ -405,18 +434,28 @@ public partial class MainWindow : Window
         var format = _settings.ClockFormat == "12"
             ? ((_settings.ShowSeconds ?? true) ? "hh:mm:ss tt" : "hh:mm tt")
             : ((_settings.ShowSeconds ?? true) ? "HH:mm:ss" : "HH:mm");
-        return CreateOpenTypeFrame(now.ToString(format), _settings.ClockFontFile, fallback);
+        return CreateFontFrame(now.ToString(format, System.Globalization.CultureInfo.InvariantCulture),
+            _settings.ClockFontFile, fallback);
     }
 
     private DmdFrame CreateDateFrame(DateTimeOffset now)
     {
         var format = _settings.DateFormat ?? "yyyy-MM-dd";
-        return CreateOpenTypeFrame(now.ToString(format), _settings.DateFontFile,
+        return CreateFontFrame(now.ToString(format, System.Globalization.CultureInfo.InvariantCulture), _settings.DateFontFile,
             () => ClockFrameFactory.CreateDate(now, format));
     }
 
-    private static DmdFrame CreateOpenTypeFrame(string text, string? relativeFontFile, Func<DmdFrame> fallback)
+    private static DmdFrame CreateFontFrame(string text, string? relativeFontFile, Func<DmdFrame> fallback)
     {
+        if (relativeFontFile is not null && EmbeddedDotClkFonts.IsEmbedded(relativeFontFile))
+        {
+            try { return EmbeddedDotClkFonts.Create(text, relativeFontFile); }
+            catch (Exception exception) when (exception is InvalidDataException or InvalidOperationException or ArgumentException)
+            {
+                return fallback();
+            }
+        }
+
         var fontPath = ResolveFontPath(relativeFontFile);
         if (fontPath is null) return fallback();
         try { return OpenTypeDmdFrameFactory.Create(text, fontPath); }
@@ -702,7 +741,7 @@ public partial class MainWindow : Window
         ApplySettingsToMenu();
         ApplyDisplaySize();
         Show(DisplayMode.Time);
-        _libraryRoot = ResolveDefaultScenesDirectory();
+        _libraryRoot = ResolveScenesDirectory(_settings.AnimationDirectory);
         await ScanLibraryAsync(startPlayback: false);
         StartLibraryWatcher();
     }
@@ -840,6 +879,12 @@ public partial class MainWindow : Window
         DateFontMenuItem.Items.Clear();
         AddFontMenuItem(ClockFontMenuItem, _clockFontItems, null, L("builtInFont"), SetClockFont);
         AddFontMenuItem(DateFontMenuItem, _dateFontItems, null, L("builtInFont"), SetDateFont);
+        foreach (var id in EmbeddedDotClkFonts.Ids)
+        {
+            var label = EmbeddedDotClkFonts.GetDisplayName(id);
+            AddFontMenuItem(ClockFontMenuItem, _clockFontItems, id, label, SetClockFont);
+            AddFontMenuItem(DateFontMenuItem, _dateFontItems, id, label, SetDateFont);
+        }
 
         var fontsDirectory = Path.Combine(AppContext.BaseDirectory, "fonts");
         if (Directory.Exists(fontsDirectory))
@@ -1112,8 +1157,11 @@ public partial class MainWindow : Window
         _ => "klassisk orange"
     };
 
-    private static string ResolveDefaultScenesDirectory()
+    private static string ResolveScenesDirectory(string? savedDirectory)
     {
+        if (!string.IsNullOrWhiteSpace(savedDirectory) && Directory.Exists(savedDirectory))
+            return Path.GetFullPath(savedDirectory);
+
         var installedDirectory = Path.Combine(AppContext.BaseDirectory, "scenes");
         if (Directory.Exists(installedDirectory) &&
             Directory.EnumerateFiles(installedDirectory, "*.scn", SearchOption.AllDirectories).Any())

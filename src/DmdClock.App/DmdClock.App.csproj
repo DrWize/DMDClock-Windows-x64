@@ -27,11 +27,16 @@
     <AvaloniaResource Include="..\..\assets\icons\dmdclock.ico">
       <Link>Assets\dmdclock.ico</Link>
     </AvaloniaResource>
-    <Content Include="..\..\assets\fonts\**\*">
+    <Content Include="..\..\assets\fonts\**\*"
+             Exclude="..\..\assets\fonts\Pinball*.otf;..\..\assets\fonts\DotClk\*.fnt">
       <Link>fonts\%(RecursiveDir)%(Filename)%(Extension)</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+      <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
     </Content>
+    <EmbeddedResource Include="..\..\assets\fonts\DotClk\*.fnt">
+      <LogicalName>DmdClock.App.Assets.Fonts.DotClk.%(Filename)%(Extension)</LogicalName>
+    </EmbeddedResource>
   </ItemGroup>
 
   <ItemGroup>
@@ -39,6 +44,7 @@
       <Link>i18n\%(Filename)%(Extension)</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+      <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
     </Content>
   </ItemGroup>
 </Project>
