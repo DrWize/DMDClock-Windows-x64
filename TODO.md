@@ -102,6 +102,7 @@ Den plattformsoberoende kärnan ska hållas åtskild från användargränssnitt 
 ### Utseende
 
 - [x] Klassiska orange DMD-prickar
+- [ ] Lägg till scrollande C64-inspirerade färgpaletter/rasterbars med valbar riktning och hastighet, långsam standard och möjlighet att stänga av animationen
 - [ ] Framtid: färganimationer
 - [ ] Framtid: valbart mellan klassisk monokrom DMD och fullfärg
 - [x] Tunn svart kant runt dot matrix-displayen
@@ -114,7 +115,7 @@ Den plattformsoberoende kärnan ska hållas åtskild från användargränssnitt 
 - [x] Kantlöst fönster med valbar titelrad och vänsterklick/drag för att flytta
 - [ ] Helskärm på valfri bildskärm
 - [ ] Starta automatiskt med Windows
-- [ ] Lägg till ett valbart Windows-skärmsläckarläge (`.scr`) som använder samma klocka, animationer och inställningar
+- [x] Lägg till ett valbart Windows x64-skärmsläckarläge (`.scr`) som använder samma klocka, animationer och inställningar
 - [ ] Alltid överst
 - [x] Högerklick var som helst i displayrutan öppnar hela menyn
 - [x] Menyn stängs när användaren klickar utanför den eller trycker Escape
@@ -172,6 +173,7 @@ Föreslaget innehåll i högerklicksmenyn:
 - [ ] Visa förhandsvisning och grunduppgifter för vald animation
 - [ ] Spara alla val och blockerade animationer mellan programstarter
 - [x] Läs valfri `scene-metadata.json` med prefixregler och exakta filöverstyrningar
+- [ ] Hitta eller skapa en kurerad SCN-lista med bra, konsekventa och beskrivande filnamn samt tillhörande spel- och sekvensmetadata
 - [x] Hoppa över avstängda, saknade eller trasiga animationer utan att uppspelningen stannar
 - [x] Visa hur många animationer som är aktiva i nuvarande urval
 

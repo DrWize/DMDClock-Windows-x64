@@ -7,7 +7,19 @@ public enum DmdColorPreset
     Orange,
     Red,
     Plasma,
-    Monochrome
+    Monochrome,
+    NeonSunset,
+    CyberOcean,
+    ToxicArcade,
+    Vaporwave,
+    Aurora,
+    C64BlueRound,
+    C64RedRound,
+    C64Earthtone,
+    C64Metal,
+    C64InterlacedBlue,
+    C64ExtrudedCyan,
+    C64Rainbow
 }
 
 public sealed record DmdClockSettings(
@@ -29,12 +41,14 @@ public sealed record DmdClockSettings(
     string? ClockFontFile,
     string? DateFontFile,
     string? ForegroundColor,
-    string? BackgroundColor)
+    string? BackgroundColor,
+    int? WindowScalePercent,
+    int? FullscreenZoomPercent)
 {
     public const int CurrentSchemaVersion = 1;
 
     public static DmdClockSettings Default { get; } = new(
-        CurrentSchemaVersion, true, false, 30, 1, 0, DmdColorPreset.Orange, 100, true, true, "en", "24", "yyyy-MM-dd", true, true, null, null, null, "#000000");
+        CurrentSchemaVersion, true, false, 30, 1, 0, DmdColorPreset.Orange, 100, true, true, "en", "24", "yyyy-MM-dd", true, true, null, null, null, "#000000", 100, 100);
 
     public DmdClockSettings Normalize() => this with
     {
@@ -54,7 +68,9 @@ public sealed record DmdClockSettings(
         ClockFontFile = NormalizeFontFile(ClockFontFile),
         DateFontFile = NormalizeFontFile(DateFontFile),
         ForegroundColor = NormalizeColor(ForegroundColor),
-        BackgroundColor = NormalizeColor(BackgroundColor) ?? "#000000"
+        BackgroundColor = NormalizeColor(BackgroundColor) ?? "#000000",
+        WindowScalePercent = NormalizeScale(WindowScalePercent),
+        FullscreenZoomPercent = NormalizeScale(FullscreenZoomPercent)
     };
 
     private static string? NormalizeFontFile(string? value)
@@ -72,5 +88,11 @@ public sealed record DmdClockSettings(
             !uint.TryParse(normalized.AsSpan(1), NumberStyles.HexNumber, CultureInfo.InvariantCulture, out _))
             return null;
         return normalized.ToUpperInvariant();
+    }
+
+    private static int NormalizeScale(int? value)
+    {
+        var clamped = Math.Clamp(value ?? 100, 5, 5000);
+        return (int)Math.Round(clamped / 5d) * 5;
     }
 }

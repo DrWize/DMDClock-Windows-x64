@@ -1,3 +1,4 @@
+using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
@@ -11,21 +12,28 @@ using DmdClock.Core;
 using DmdClock.App.Logging;
 using DmdClock.App.Localization;
 using DmdClock.App.Rendering;
+using DmdClock.App.Screensaver;
 using DmdClock.Core.Clock;
 using DmdClock.Core.Library;
 using DmdClock.Core.Playback;
 using DmdClock.Core.Rendering;
 using DmdClock.Core.Scn;
 using DmdClock.Core.Settings;
+using DmdClock.Core.Screensaver;
 
 namespace DmdClock.App;
 
 public partial class MainWindow : Window
 {
     private static readonly TimeSpan AnimationInformationDuration = TimeSpan.FromSeconds(5);
-    private static readonly TimeSpan StartupBrandDuration = TimeSpan.FromSeconds(2);
+    private static readonly TimeSpan StartupBrandDuration = TimeSpan.FromSeconds(4);
+    private static readonly TimeSpan MouseCursorHideDelay = TimeSpan.FromSeconds(5);
+    private const double DefaultWindowWidth = 1024;
+    private const double DefaultWindowHeight = 256;
     private const string HelpGitHubUrl = "https://github.com/DrWize/DMDClock-Windows-x64";
     private readonly DispatcherTimer _displayTimer;
+    private readonly DispatcherTimer _cursorHideTimer;
+    private readonly Cursor _hiddenCursor = new(StandardCursorType.None);
     private readonly AnimationLibraryScanner _libraryScanner = new();
     private readonly AnimationLibraryStore _libraryStore = new();
     private readonly SceneMetadataStore _metadataStore = new();
@@ -42,6 +50,7 @@ public partial class MainWindow : Window
     private readonly Dictionary<MenuItem, string?> _dateFontItems = [];
     private readonly DateTimeOffset _startedUtc = DateTimeOffset.UtcNow;
     private readonly string _buildId = GetBuildId();
+    private readonly ScreenSaverLaunchOptions _launchOptions;
     private ScenePlaybackSession? _playback;
     private AnimationLibraryIndex? _libraryIndex;
     private SceneMetadataCatalog _sceneMetadata = SceneMetadataCatalog.Empty;
@@ -65,13 +74,21 @@ public partial class MainWindow : Window
     private string? _status;
     private string? _lastLoggedDisplay;
     private DmdClockSettings _settings = DmdClockSettings.Default;
+    private Point? _screenSaverMouseOrigin;
+    private bool _pointerIsOverWindow;
 
-    public MainWindow()
+    public MainWindow() : this(new ScreenSaverLaunchOptions(ScreenSaverLaunchMode.Normal, 0)) { }
+
+    internal MainWindow(ScreenSaverLaunchOptions launchOptions)
     {
+        _launchOptions = launchOptions;
         InitializeComponent();
+        ConfigureLaunchMode();
         LogStartup();
         _displayTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(16) };
         _displayTimer.Tick += (_, _) => Tick();
+        _cursorHideTimer = new DispatcherTimer { Interval = MouseCursorHideDelay };
+        _cursorHideTimer.Tick += (_, _) => HideInactiveCursor();
         Show(DisplayMode.Time);
         _displayTimer.Start();
         Opened += OnOpened;
@@ -82,6 +99,14 @@ public partial class MainWindow : Window
     protected override void OnKeyDown(KeyEventArgs e)
     {
         base.OnKeyDown(e);
+
+        if (_launchOptions.Mode == ScreenSaverLaunchMode.Fullscreen)
+        {
+            Close();
+            e.Handled = true;
+            return;
+        }
+        if (_launchOptions.Mode == ScreenSaverLaunchMode.Preview) return;
 
         if (e.Key == Key.O && e.KeyModifiers == KeyModifiers.Control)
             _ = OpenSceneAsync();
@@ -96,13 +121,19 @@ public partial class MainWindow : Window
                 case Key.D: Show(DisplayMode.Date); break;
                 case Key.I: ToggleAnimationInformation(); break;
                 case Key.F11: ToggleFullscreen(); break;
+                case Key.OemPlus:
+                case Key.Add: AdjustDisplaySize(5); break;
+                case Key.OemMinus:
+                case Key.Subtract: AdjustDisplaySize(-5); break;
+                case Key.D0:
+                case Key.NumPad0: ResetDisplaySize(); break;
                 case Key.F5: _ = ScanLibraryAsync(startPlayback: false); break;
                 case Key.Right: MoveFrame(1); break;
                 case Key.Left: MoveFrame(-1); break;
                 case Key.N: _ = PlayLibraryOffsetAsync(1); break;
                 case Key.P: _ = PlayLibraryOffsetAsync(-1); break;
                 case Key.Escape when WindowState == WindowState.FullScreen:
-                    WindowState = _windowStateBeforeFullscreen;
+                    LeaveFullscreen();
                     break;
                 default: return;
             }
@@ -113,6 +144,12 @@ public partial class MainWindow : Window
 
     private void Tick()
     {
+        if (_launchOptions.Mode == ScreenSaverLaunchMode.Preview &&
+            !ScreenSaverPreviewHost.ParentExists(_launchOptions.PreviewParent))
+        {
+            Close();
+            return;
+        }
         if (_isPaused) return;
         var now = DateTimeOffset.UtcNow;
 
@@ -393,12 +430,76 @@ public partial class MainWindow : Window
     private void ToggleFullscreen()
     {
         if (WindowState == WindowState.FullScreen)
-            WindowState = _windowStateBeforeFullscreen;
+            LeaveFullscreen();
         else
         {
             _windowStateBeforeFullscreen = WindowState;
             WindowState = WindowState.FullScreen;
+            ApplyDisplaySize();
         }
+    }
+
+    private void LeaveFullscreen()
+    {
+        WindowState = _windowStateBeforeFullscreen;
+        ApplyDisplaySize();
+    }
+
+    private void AdjustDisplaySize(int deltaPercent)
+    {
+        if (WindowState == WindowState.FullScreen)
+            _settings = (_settings with
+            {
+                FullscreenZoomPercent = (_settings.FullscreenZoomPercent ?? 100) + deltaPercent
+            }).Normalize();
+        else
+            _settings = (_settings with
+            {
+                WindowScalePercent = (_settings.WindowScalePercent ?? 100) + deltaPercent
+            }).Normalize();
+        ApplyDisplaySize();
+        ApplySettingsToMenu();
+        SaveSettings();
+        LogDisplaySize();
+    }
+
+    private void ResetDisplaySize()
+    {
+        _settings = WindowState == WindowState.FullScreen
+            ? (_settings with { FullscreenZoomPercent = 100 }).Normalize()
+            : (_settings with { WindowScalePercent = 100 }).Normalize();
+        ApplyDisplaySize();
+        ApplySettingsToMenu();
+        SaveSettings();
+        LogDisplaySize();
+    }
+
+    private void ApplyDisplaySize()
+    {
+        if (_launchOptions.Mode == ScreenSaverLaunchMode.Preview)
+        {
+            Display.Zoom = 1d;
+            return;
+        }
+        if (WindowState == WindowState.FullScreen)
+        {
+            Display.Zoom = (_settings.FullscreenZoomPercent ?? 100) / 100d;
+            return;
+        }
+
+        Display.Zoom = 1d;
+        var scale = (_settings.WindowScalePercent ?? 100) / 100d;
+        Width = DefaultWindowWidth * scale;
+        Height = DefaultWindowHeight * scale;
+    }
+
+    private void LogDisplaySize()
+    {
+        var fullscreen = WindowState == WindowState.FullScreen;
+        var percent = fullscreen ? _settings.FullscreenZoomPercent : _settings.WindowScalePercent;
+        SetStatus($"{L("displaySize")}: {percent} %");
+        _ = _log.WriteAsync(DateTimeOffset.UtcNow,
+            $"display.scale mode={(fullscreen ? "fullscreen" : "window")} percent={percent}");
     }
 
     private void StartLibraryWatcher()
@@ -530,6 +631,9 @@ public partial class MainWindow : Window
     private void OnClosed(object? sender, EventArgs e)
     {
         _displayTimer.Stop();
+        _cursorHideTimer.Stop();
+        Cursor = null;
+        _hiddenCursor.Dispose();
         _startupBrandCancellation.Cancel();
         _startupBrandCancellation.Dispose();
         CancelInformationDisplay();
@@ -549,6 +653,7 @@ public partial class MainWindow : Window
         var assemblyVersion = Assembly.GetExecutingAssembly().GetName().Version?.ToString() ?? "unknown";
         _log.WriteAsync(_startedUtc,
                 $"app.start build=\"{SanitizeLogValue(_buildId)}\" version={assemblyVersion} " +
+                $"mode={_launchOptions.Mode.ToString().ToLowerInvariant()} " +
                 $"pid={Environment.ProcessId} runtime=\"{SanitizeLogValue(RuntimeInformation.FrameworkDescription)}\" " +
                 $"os=\"{SanitizeLogValue(RuntimeInformation.OSDescription)}\" startUtc={_startedUtc:O} " +
                 $"basePath=\"{SanitizeLogValue(AppContext.BaseDirectory)}\"")
@@ -562,6 +667,12 @@ public partial class MainWindow : Window
     private void OnOpened(object? sender, EventArgs e)
     {
         Opened -= OnOpened;
+        if (_launchOptions.Mode == ScreenSaverLaunchMode.Preview &&
+            !ScreenSaverPreviewHost.Attach(this, _launchOptions.PreviewParent))
+        {
+            Close();
+            return;
+        }
         LogDisplayChange("brand:alien-tech",
             $"display.show type=brand name=\"Alien Tech\" durationMs={StartupBrandDuration.TotalMilliseconds:F0}");
         _ = HideStartupBrandAsync(_startupBrandCancellation.Token);
@@ -589,6 +700,7 @@ public partial class MainWindow : Window
         PopulateFontMenus();
         _randomMode = _settings.RandomPlayback;
         ApplySettingsToMenu();
+        ApplyDisplaySize();
         Show(DisplayMode.Time);
         _libraryRoot = ResolveDefaultScenesDirectory();
         await ScanLibraryAsync(startPlayback: false);
@@ -661,6 +773,18 @@ public partial class MainWindow : Window
         AppearanceRedMenuItem.Header = Check(preset == DmdColorPreset.Red, L("red"));
         AppearancePlasmaMenuItem.Header = Check(preset == DmdColorPreset.Plasma, L("plasma"));
         AppearanceMonochromeMenuItem.Header = Check(preset == DmdColorPreset.Monochrome, L("monochrome"));
+        AppearanceNeonSunsetMenuItem.Header = Check(preset == DmdColorPreset.NeonSunset, L("neonSunset"));
+        AppearanceCyberOceanMenuItem.Header = Check(preset == DmdColorPreset.CyberOcean, L("cyberOcean"));
+        AppearanceToxicArcadeMenuItem.Header = Check(preset == DmdColorPreset.ToxicArcade, L("toxicArcade"));
+        AppearanceVaporwaveMenuItem.Header = Check(preset == DmdColorPreset.Vaporwave, L("vaporwave"));
+        AppearanceAuroraMenuItem.Header = Check(preset == DmdColorPreset.Aurora, L("aurora"));
+        AppearanceC64BlueRoundMenuItem.Header = Check(preset == DmdColorPreset.C64BlueRound, L("c64BlueRound"));
+        AppearanceC64RedRoundMenuItem.Header = Check(preset == DmdColorPreset.C64RedRound, L("c64RedRound"));
+        AppearanceC64EarthtoneMenuItem.Header = Check(preset == DmdColorPreset.C64Earthtone, L("c64Earthtone"));
+        AppearanceC64MetalMenuItem.Header = Check(preset == DmdColorPreset.C64Metal, L("c64Metal"));
+        AppearanceC64InterlacedBlueMenuItem.Header = Check(preset == DmdColorPreset.C64InterlacedBlue, L("c64InterlacedBlue"));
+        AppearanceC64ExtrudedCyanMenuItem.Header = Check(preset == DmdColorPreset.C64ExtrudedCyan, L("c64ExtrudedCyan"));
+        AppearanceC64RainbowMenuItem.Header = Check(preset == DmdColorPreset.C64Rainbow, L("c64Rainbow"));
         var brightness = _settings.BrightnessPercent ?? 100;
         Brightness25MenuItem.Header = Check(brightness == 25, "25 %");
         Brightness50MenuItem.Header = Check(brightness == 50, "50 %");
@@ -676,9 +800,15 @@ public partial class MainWindow : Window
         Clock12MenuItem.Header = Check(_settings.ClockFormat == "12", L("hour12"));
         ShowSecondsMenuItem.Header = Check(_settings.ShowSeconds ?? true, L("showSeconds"));
         ShowTitleBarMenuItem.Header = Check(_settings.ShowTitleBar ?? true, L("showTitleBar"));
-        WindowDecorations = (_settings.ShowTitleBar ?? true)
-            ? Avalonia.Controls.WindowDecorations.Full
-            : Avalonia.Controls.WindowDecorations.None;
+        var displaySize = WindowState == WindowState.FullScreen
+            ? _settings.FullscreenZoomPercent ?? 100
+            : _settings.WindowScalePercent ?? 100;
+        DisplaySizeMenuItem.Header = $"{L("displaySize")}: {displaySize} %";
+        WindowDecorations = _launchOptions.Mode is ScreenSaverLaunchMode.Fullscreen or ScreenSaverLaunchMode.Preview
+            ? Avalonia.Controls.WindowDecorations.None
+            : (_settings.ShowTitleBar ?? true)
+                ? Avalonia.Controls.WindowDecorations.Full
+                : Avalonia.Controls.WindowDecorations.None;
         var dateFormat = _settings.DateFormat ?? "yyyy-MM-dd";
         DateIsoMenuItem.Header = Check(dateFormat == "yyyy-MM-dd", L("dateIso"));
         DateEuropeanMenuItem.Header = Check(dateFormat == "dd/MM/yyyy", L("dateEuropean"));
@@ -879,6 +1009,19 @@ public partial class MainWindow : Window
         SetStatus($"Färgtema: {PresetName(preset)}");
     }
 
+    private void SetMultiColorTheme(DmdColorPreset preset, string backgroundColor)
+    {
+        _settings = (_settings with
+        {
+            ColorPreset = preset,
+            ForegroundColor = null,
+            BackgroundColor = backgroundColor
+        }).Normalize();
+        ApplySettingsToMenu();
+        SaveSettings();
+        SetStatus($"{L("colorTheme")}: {PresetName(preset)}");
+    }
+
     private async Task PickColorAsync(bool foreground)
     {
         var initial = foreground
@@ -908,6 +1051,18 @@ public partial class MainWindow : Window
         DmdColorPreset.Red => Color.FromRgb(255, 32, 16),
         DmdColorPreset.Plasma => Color.FromRgb(120, 100, 255),
         DmdColorPreset.Monochrome => Color.FromRgb(235, 235, 235),
+        DmdColorPreset.NeonSunset => Color.FromRgb(255, 209, 102),
+        DmdColorPreset.CyberOcean => Color.FromRgb(94, 255, 255),
+        DmdColorPreset.ToxicArcade => Color.FromRgb(245, 255, 87),
+        DmdColorPreset.Vaporwave => Color.FromRgb(255, 92, 225),
+        DmdColorPreset.Aurora => Color.FromRgb(180, 112, 255),
+        DmdColorPreset.C64BlueRound => Color.FromRgb(0x6C, 0x5E, 0xB5),
+        DmdColorPreset.C64RedRound => Color.FromRgb(0x9A, 0x67, 0x59),
+        DmdColorPreset.C64Earthtone => Color.FromRgb(0xB8, 0xC7, 0x6F),
+        DmdColorPreset.C64Metal => Color.FromRgb(0x95, 0x95, 0x95),
+        DmdColorPreset.C64InterlacedBlue => Color.FromRgb(0x70, 0xA4, 0xB2),
+        DmdColorPreset.C64ExtrudedCyan => Color.FromRgb(0x70, 0xA4, 0xB2),
+        DmdColorPreset.C64Rainbow => Color.FromRgb(0xB8, 0xC7, 0x6F),
         _ => Color.FromRgb(255, 112, 14)
     };
 
@@ -942,6 +1097,18 @@ public partial class MainWindow : Window
         DmdColorPreset.Red => "röd",
         DmdColorPreset.Plasma => "plasma",
         DmdColorPreset.Monochrome => "monokrom",
+        DmdColorPreset.NeonSunset => L("neonSunset"),
+        DmdColorPreset.CyberOcean => L("cyberOcean"),
+        DmdColorPreset.ToxicArcade => L("toxicArcade"),
+        DmdColorPreset.Vaporwave => L("vaporwave"),
+        DmdColorPreset.Aurora => L("aurora"),
+        DmdColorPreset.C64BlueRound => L("c64BlueRound"),
+        DmdColorPreset.C64RedRound => L("c64RedRound"),
+        DmdColorPreset.C64Earthtone => L("c64Earthtone"),
+        DmdColorPreset.C64Metal => L("c64Metal"),
+        DmdColorPreset.C64InterlacedBlue => L("c64InterlacedBlue"),
+        DmdColorPreset.C64ExtrudedCyan => L("c64ExtrudedCyan"),
+        DmdColorPreset.C64Rainbow => L("c64Rainbow"),
         _ => "klassisk orange"
     };
 
@@ -962,7 +1129,11 @@ public partial class MainWindow : Window
     private async void OpenScene_Click(object? sender, RoutedEventArgs e) => await OpenSceneAsync();
     private async void ChooseFolder_Click(object? sender, RoutedEventArgs e) => await ChooseFolderAsync();
     private async void Rescan_Click(object? sender, RoutedEventArgs e) => await ScanLibraryAsync(startPlayback: false);
-    private void MainContextMenu_Opened(object? sender, RoutedEventArgs e) => PopulateFontMenus();
+    private void MainContextMenu_Opened(object? sender, RoutedEventArgs e)
+    {
+        PopulateFontMenus();
+        ApplySettingsToMenu();
+    }
     private void PlayPause_Click(object? sender, RoutedEventArgs e) => TogglePause();
     private void NextFrame_Click(object? sender, RoutedEventArgs e) => MoveFrame(1);
     private void PreviousFrame_Click(object? sender, RoutedEventArgs e) => MoveFrame(-1);
@@ -997,6 +1168,18 @@ public partial class MainWindow : Window
     private void AppearanceRed_Click(object? sender, RoutedEventArgs e) => SetColorPreset(DmdColorPreset.Red);
     private void AppearancePlasma_Click(object? sender, RoutedEventArgs e) => SetColorPreset(DmdColorPreset.Plasma);
     private void AppearanceMonochrome_Click(object? sender, RoutedEventArgs e) => SetColorPreset(DmdColorPreset.Monochrome);
+    private void AppearanceNeonSunset_Click(object? sender, RoutedEventArgs e) => SetMultiColorTheme(DmdColorPreset.NeonSunset, "#180020");
+    private void AppearanceCyberOcean_Click(object? sender, RoutedEventArgs e) => SetMultiColorTheme(DmdColorPreset.CyberOcean, "#001528");
+    private void AppearanceToxicArcade_Click(object? sender, RoutedEventArgs e) => SetMultiColorTheme(DmdColorPreset.ToxicArcade, "#071B0F");
+    private void AppearanceVaporwave_Click(object? sender, RoutedEventArgs e) => SetMultiColorTheme(DmdColorPreset.Vaporwave, "#160B2D");
+    private void AppearanceAurora_Click(object? sender, RoutedEventArgs e) => SetMultiColorTheme(DmdColorPreset.Aurora, "#061A2B");
+    private void AppearanceC64BlueRound_Click(object? sender, RoutedEventArgs e) => SetMultiColorTheme(DmdColorPreset.C64BlueRound, "#000000");
+    private void AppearanceC64RedRound_Click(object? sender, RoutedEventArgs e) => SetMultiColorTheme(DmdColorPreset.C64RedRound, "#000000");
+    private void AppearanceC64Earthtone_Click(object? sender, RoutedEventArgs e) => SetMultiColorTheme(DmdColorPreset.C64Earthtone, "#000000");
+    private void AppearanceC64Metal_Click(object? sender, RoutedEventArgs e) => SetMultiColorTheme(DmdColorPreset.C64Metal, "#000000");
+    private void AppearanceC64InterlacedBlue_Click(object? sender, RoutedEventArgs e) => SetMultiColorTheme(DmdColorPreset.C64InterlacedBlue, "#000000");
+    private void AppearanceC64ExtrudedCyan_Click(object? sender, RoutedEventArgs e) => SetMultiColorTheme(DmdColorPreset.C64ExtrudedCyan, "#000000");
+    private void AppearanceC64Rainbow_Click(object? sender, RoutedEventArgs e) => SetMultiColorTheme(DmdColorPreset.C64Rainbow, "#000000");
     private void Brightness25_Click(object? sender, RoutedEventArgs e) => SetBrightness(25);
     private void Brightness50_Click(object? sender, RoutedEventArgs e) => SetBrightness(50);
     private void Brightness75_Click(object? sender, RoutedEventArgs e) => SetBrightness(75);
@@ -1014,7 +1197,22 @@ public partial class MainWindow : Window
     private void ShowTime_Click(object? sender, RoutedEventArgs e) => Show(DisplayMode.Time);
     private void ShowDate_Click(object? sender, RoutedEventArgs e) => Show(DisplayMode.Date);
     private void Fullscreen_Click(object? sender, RoutedEventArgs e) => ToggleFullscreen();
+    private void IncreaseDisplaySize_Click(object? sender, RoutedEventArgs e) => AdjustDisplaySize(5);
+    private void DecreaseDisplaySize_Click(object? sender, RoutedEventArgs e) => AdjustDisplaySize(-5);
+    private void ResetDisplaySize_Click(object? sender, RoutedEventArgs e) => ResetDisplaySize();
     private void HelpGitHub_Click(object? sender, RoutedEventArgs e)
+        => OpenHelpGitHub();
+
+    private void StartupCredit_PointerPressed(object? sender, PointerPressedEventArgs e)
+    {
+        if (_launchOptions.Mode == ScreenSaverLaunchMode.Fullscreen)
+            Close();
+        else if (_launchOptions.Mode != ScreenSaverLaunchMode.Preview)
+            OpenHelpGitHub();
+        e.Handled = true;
+    }
+
+    private void OpenHelpGitHub()
     {
         try
         {
@@ -1044,10 +1242,87 @@ public partial class MainWindow : Window
 
     private void Display_PointerPressed(object? sender, PointerPressedEventArgs e)
     {
+        if (_launchOptions.Mode == ScreenSaverLaunchMode.Fullscreen)
+        {
+            Close();
+            e.Handled = true;
+            return;
+        }
+        if (_launchOptions.Mode == ScreenSaverLaunchMode.Preview) return;
         if (!(_settings.ShowTitleBar ?? true) && e.GetCurrentPoint(this).Properties.IsLeftButtonPressed)
         {
             BeginMoveDrag(e);
             e.Handled = true;
+        }
+    }
+
+    protected override void OnPointerMoved(PointerEventArgs e)
+    {
+        base.OnPointerMoved(e);
+        ShowCursorAndRestartTimeout();
+        if (_launchOptions.Mode != ScreenSaverLaunchMode.Fullscreen) return;
+        var position = e.GetPosition(this);
+        if (DateTimeOffset.UtcNow - _startedUtc < TimeSpan.FromSeconds(2))
+        {
+            _screenSaverMouseOrigin = position;
+            return;
+        }
+        if (_screenSaverMouseOrigin is not { } origin)
+        {
+            _screenSaverMouseOrigin = position;
+            return;
+        }
+        var deltaX = position.X - origin.X;
+        var deltaY = position.Y - origin.Y;
+        if ((deltaX * deltaX) + (deltaY * deltaY) >= 64) Close();
+    }
+
+    protected override void OnPointerEntered(PointerEventArgs e)
+    {
+        base.OnPointerEntered(e);
+        _pointerIsOverWindow = true;
+        ShowCursorAndRestartTimeout();
+    }
+
+    protected override void OnPointerExited(PointerEventArgs e)
+    {
+        base.OnPointerExited(e);
+        _pointerIsOverWindow = false;
+        _cursorHideTimer.Stop();
+        Cursor = null;
+    }
+
+    private void ShowCursorAndRestartTimeout()
+    {
+        if (!_pointerIsOverWindow) return;
+        Cursor = null;
+        _cursorHideTimer.Stop();
+        _cursorHideTimer.Start();
+    }
+
+    private void HideInactiveCursor()
+    {
+        _cursorHideTimer.Stop();
+        if (_pointerIsOverWindow) Cursor = _hiddenCursor;
+    }
+
+    private void ConfigureLaunchMode()
+    {
+        if (_launchOptions.Mode == ScreenSaverLaunchMode.Fullscreen)
+        {
+            WindowDecorations = Avalonia.Controls.WindowDecorations.None;
+            WindowState = WindowState.FullScreen;
+            ShowInTaskbar = false;
+            Topmost = true;
+            Display.ContextMenu = null;
+        }
+        else if (_launchOptions.Mode == ScreenSaverLaunchMode.Preview)
+        {
+            WindowDecorations = Avalonia.Controls.WindowDecorations.None;
+            WindowStartupLocation = WindowStartupLocation.Manual;
+            ShowInTaskbar = false;
+            CanResize = false;
+            Display.ContextMenu = null;
         }
     }
 

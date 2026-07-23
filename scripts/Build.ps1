@@ -6,7 +6,10 @@ param(
     [ValidateSet('win-x64', 'linux-arm64', 'linux-arm')]
     [string]$Runtime = 'win-x64',
 
-    [switch]$NoStart
+    [switch]$NoStart,
+
+    [ValidateRange(1, 100)]
+    [int]$MaxArchivedBuilds = 10
 )
 
 $ErrorActionPreference = 'Stop'
@@ -38,9 +41,23 @@ function Assert-WithinOutputRoot([string]$Path) {
     }
 }
 
+function Remove-ExpiredBuildArchives {
+    if (-not (Test-Path -LiteralPath $archiveRoot)) { return }
+
+    $expired = @(Get-ChildItem -LiteralPath $archiveRoot -Directory |
+        Sort-Object LastWriteTime -Descending |
+        Select-Object -Skip $MaxArchivedBuilds)
+
+    foreach ($directory in $expired) {
+        Assert-WithinOutputRoot $directory.FullName
+        Remove-Item -LiteralPath $directory.FullName -Recurse -Force
+        Write-Host "Removed expired build archive: $($directory.FullName)"
+    }
+}
+
 function Stop-DmdClockProcesses {
     $targets = @(Get-CimInstance Win32_Process | Where-Object {
-        $_.Name -in @('DmdClock.App.exe', 'DmdClock.Tools.exe') -or
+        $_.Name -in @('DmdClock.App.exe', 'DmdClock.Tools.exe', 'DMDClock.scr') -or
         ($_.Name -eq 'dotnet.exe' -and
             ($_.CommandLine -like '*DmdClock.App*' -or $_.CommandLine -like '*DmdClock.Tools*'))
     })
@@ -151,9 +168,15 @@ try {
         runtime = $Runtime
         configuration = $Configuration
         selfContained = $true
+        screensaver = ($Runtime -eq 'win-x64')
     } | ConvertTo-Json
     Set-Content -LiteralPath (Join-Path $stagingDirectory 'build-info.json') `
         -Value $buildInfo -Encoding utf8
+
+    if ($Runtime -eq 'win-x64') {
+        Copy-Item -LiteralPath (Join-Path $stagingDirectory 'DmdClock.App.exe') `
+            -Destination (Join-Path $stagingDirectory 'DMDClock.scr') -Force
+    }
 
     if ((Test-Path -LiteralPath $currentDirectory) -and
         (Get-ChildItem -LiteralPath $currentDirectory -Force | Select-Object -First 1)) {
@@ -170,6 +193,7 @@ try {
         Set-Content -LiteralPath (Join-Path $archiveDirectory 'archive-manifest.json') -Value $archiveManifest -Encoding utf8
 
         Write-Host "Archived previous build to: $archiveDirectory"
+        Remove-ExpiredBuildArchives
     }
 
     if (Test-Path -LiteralPath $currentDirectory) {

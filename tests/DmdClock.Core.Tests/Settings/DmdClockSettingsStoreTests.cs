@@ -4,6 +4,25 @@ namespace DmdClock.Core.Tests.Settings;
 
 public sealed class DmdClockSettingsStoreTests
 {
+    [Theory]
+    [InlineData(DmdColorPreset.NeonSunset)]
+    [InlineData(DmdColorPreset.CyberOcean)]
+    [InlineData(DmdColorPreset.ToxicArcade)]
+    [InlineData(DmdColorPreset.Vaporwave)]
+    [InlineData(DmdColorPreset.Aurora)]
+    [InlineData(DmdColorPreset.C64BlueRound)]
+    [InlineData(DmdColorPreset.C64RedRound)]
+    [InlineData(DmdColorPreset.C64Earthtone)]
+    [InlineData(DmdColorPreset.C64Metal)]
+    [InlineData(DmdColorPreset.C64InterlacedBlue)]
+    [InlineData(DmdColorPreset.C64ExtrudedCyan)]
+    [InlineData(DmdColorPreset.C64Rainbow)]
+    public void Normalize_PreservesMultiColorTheme(DmdColorPreset preset)
+    {
+        var normalized = (DmdClockSettings.Default with { ColorPreset = preset }).Normalize();
+        Assert.Equal(preset, normalized.ColorPreset);
+    }
+
     [Fact]
     public async Task SaveAndLoad_RoundTripsNormalizedSettings()
     {
@@ -14,7 +33,7 @@ public sealed class DmdClockSettingsStoreTests
         {
             await store.SaveAtomicAsync(new DmdClockSettings(
                 1, true, true, 1, 99, 9999, DmdColorPreset.Plasma, 999, false, false, "sv", "12", "dd/MM/yyyy", false, false,
-                "Inter/InterVariable.ttf", "../outside.otf", "#1a2b3c", "invalid"), path);
+                "Inter/InterVariable.ttf", "../outside.otf", "#1a2b3c", "invalid", -100, 99999), path);
             var loaded = await store.LoadAsync(path);
 
             Assert.True(loaded.RandomPlayback);
@@ -34,6 +53,8 @@ public sealed class DmdClockSettingsStoreTests
             Assert.Null(loaded.DateFontFile);
             Assert.Equal("#1A2B3C", loaded.ForegroundColor);
             Assert.Equal("#000000", loaded.BackgroundColor);
+            Assert.Equal(5, loaded.WindowScalePercent);
+            Assert.Equal(5000, loaded.FullscreenZoomPercent);
         }
         finally
         {
@@ -67,6 +88,8 @@ public sealed class DmdClockSettingsStoreTests
             Assert.True(loaded.ShowTitleBar);
             Assert.Null(loaded.ForegroundColor);
             Assert.Equal("#000000", loaded.BackgroundColor);
+            Assert.Equal(100, loaded.WindowScalePercent);
+            Assert.Equal(100, loaded.FullscreenZoomPercent);
         }
         finally
         {

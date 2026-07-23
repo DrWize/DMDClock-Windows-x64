@@ -6,17 +6,26 @@ The active project scope is the original single-color DMD format. Full-color Ser
 
 ## Screenshots
 
-### Time
+### Neon sunset
 
-![DMDClock showing the time](docs/screenshots/time.png)
+![DMDClock clock using the Neon sunset theme](docs/screenshots/colors/neon-sunset.png)
 
-### Date
+### C64 blue round raster
 
-![DMDClock showing an ISO-formatted date](docs/screenshots/date.png)
+![DMDClock clock using the C64 blue round raster theme](docs/screenshots/colors/c64-blue-round.png)
+
+### C64 rainbow
+
+![DMDClock clock using the C64 rainbow theme](docs/screenshots/colors/c64-rainbow.png)
+
+## Current status
+
+The Windows x64 application and screensaver are functional. The current implementation plays classic 128×32 four-bit SCN animations, watches the scene library for new files, renders configurable clocks and dates, supports bundled TTF/OTF fonts, and provides classic, gradient and static C64-inspired color themes. Serum, cRom, larger displays and DMD Extensions remain future work.
 
 ## Features
 
 - Classic 128×32 orange, red, plasma or monochrome DMD appearance
+- Five horizontal gradient themes and seven static C64-inspired raster themes
 - DotClk `.scn` playback with storyboard timing, masks, blanking and clock layers
 - Automatic clock/animation cycles with configurable duration, count and gaps
 - Sequential or random playback
@@ -26,9 +35,12 @@ The active project scope is the original single-color DMD format. Full-color Ser
 - Optional `scene-metadata.json` for game, manufacturer and sequence information
 - Five-second game/sequence overlay at animation start
 - English menus by default, Swedish translation and a reusable i18n template
-- Startup branding with the actual number of successfully loaded animations
+- Four-second Alien Tech startup branding with the actual number of loaded animations and project credit
 - Keyboard shortcuts, fullscreen mode and a persistent right-click menu
+- Window/fullscreen zoom from 5% to 5000% in 5% steps
 - Optional title bar with click-and-drag movement in borderless mode
+- Mouse pointer auto-hide after five seconds of inactivity over the display
+- Native Windows x64 `.scr` package with fullscreen, configuration and Control Panel preview modes
 - Structured UTF-8 logs with a 3 MiB rotation limit
 
 ## Running a published build
@@ -62,11 +74,29 @@ Published files are written to:
 output/current/win-x64/
 ```
 
-Previous builds are retained under `output/archive/`.
+The 10 newest previous builds are retained under `output/archive/`; older archives are removed automatically after a successful build. Use `-MaxArchivedBuilds` to select another retention count.
 
 The application and window icon use the selected single-flipper concept number 3. The multi-resolution Windows icon and its 512 px source are stored in [`assets/icons`](assets/icons).
 
 Under **Appearance**, foreground and background colors can be selected with an RGB/hex color picker. Custom colors are saved in AppData; choosing one of the existing color themes resets the foreground to that theme while retaining the selected background.
+
+Five multi-color DMD themes are included: Neon sunset, Cyber ocean, Toxic arcade, Vaporwave and Aurora. Each combines a horizontal two-color dot gradient, matching glow and a dark background while remaining compatible with the original four-bit DMD frames.
+
+Seven static Commodore 64-inspired raster themes are also available: blue round raster, red round raster, earthtone raster, metal raster, interlaced blue, extruded cyan and C64 rainbow. They use vertical bands based on the classic fixed C64 palette. The experimental Secret Purple Mix is intentionally not included.
+
+The mouse pointer automatically disappears after five seconds without movement while it is over the display. Moving the mouse makes it visible again immediately.
+
+## Windows x64 screensaver
+
+Every Windows x64 build includes `DMDClock.scr` beside `DmdClock.App.exe`. It uses the same `scenes` and `fonts` directories and the same preferences stored under `%LOCALAPPDATA%\DmdClock`.
+
+To install it, right-click `DMDClock.scr` and choose **Install**, then select DMDClock in Windows Screen Saver Settings. Keep the complete published directory in place because the `.scr` file uses the self-contained runtime files beside it.
+
+Standard Windows screensaver modes are supported:
+
+- `DMDClock.scr /s` – fullscreen screensaver; exits on a key, click or deliberate mouse movement
+- `DMDClock.scr /c` – open the normal DMDClock window for configuration
+- `DMDClock.scr /p <HWND>` – embedded Control Panel preview
 
 ## Controls
 
@@ -82,6 +112,8 @@ Right-click anywhere on the display to open the full menu. The menu remains open
 | `Left` / `Right` | Previous / next frame |
 | `F5` | Rescan the scene library |
 | `F11` | Toggle fullscreen |
+| `+` / `-` | Increase / decrease window size, or centered DMD zoom in fullscreen, in 5% steps (5–5000%) |
+| `0` | Reset the current window size or fullscreen zoom to 100% |
 | `Escape` | Leave fullscreen or close the menu |
 | `Ctrl+O` | Open one SCN file |
 | `Ctrl+Shift+O` | Choose a scene directory |
@@ -124,8 +156,9 @@ The active log is limited to 3 MiB. Startup, graceful exit, scans, display chang
 - [Scene metadata](docs/SCENE-METADATA.md)
 - [Future DMD Extensions work](docs/FUTURE-DMD-EXTENSIONS.md)
 - [Source references](docs/SOURCES.md)
+- [C64-inspired raster theme research](docs/C64-RASTER-THEMES.md)
 
-Planned work includes packaging, richer library selection, `.fnt` support, Raspberry Pi validation, ESP32-S3 research and an optional Windows screensaver mode.
+Planned work includes installer packaging, richer library selection, `.fnt` support, Raspberry Pi validation, ESP32-S3 research and optional scrolling C64-style raster colors.
 
 ## Font attribution
 

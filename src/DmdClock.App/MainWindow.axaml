@@ -9,8 +9,8 @@
         Icon="/Assets/dmdclock.ico"
         Width="1024"
         Height="256"
-        MinWidth="512"
-        MinHeight="128"
+        MinWidth="51"
+        MinHeight="13"
         Background="Black">
     <Border Background="Black" BorderBrush="#080808" BorderThickness="3" Padding="3">
         <Grid>
@@ -52,6 +52,20 @@
                             <MenuItem x:Name="AppearanceRedMenuItem" Header="Red" Click="AppearanceRed_Click" />
                             <MenuItem x:Name="AppearancePlasmaMenuItem" Header="Plasma" Click="AppearancePlasma_Click" />
                             <MenuItem x:Name="AppearanceMonochromeMenuItem" Header="Monochrome" Click="AppearanceMonochrome_Click" />
+                            <Separator />
+                            <MenuItem x:Name="AppearanceNeonSunsetMenuItem" Header="Neon sunset" Click="AppearanceNeonSunset_Click" />
+                            <MenuItem x:Name="AppearanceCyberOceanMenuItem" Header="Cyber ocean" Click="AppearanceCyberOcean_Click" />
+                            <MenuItem x:Name="AppearanceToxicArcadeMenuItem" Header="Toxic arcade" Click="AppearanceToxicArcade_Click" />
+                            <MenuItem x:Name="AppearanceVaporwaveMenuItem" Header="Vaporwave" Click="AppearanceVaporwave_Click" />
+                            <MenuItem x:Name="AppearanceAuroraMenuItem" Header="Aurora" Click="AppearanceAurora_Click" />
+                            <Separator />
+                            <MenuItem x:Name="AppearanceC64BlueRoundMenuItem" Header="C64 blue round raster" Click="AppearanceC64BlueRound_Click" />
+                            <MenuItem x:Name="AppearanceC64RedRoundMenuItem" Header="C64 red round raster" Click="AppearanceC64RedRound_Click" />
+                            <MenuItem x:Name="AppearanceC64EarthtoneMenuItem" Header="C64 earthtone raster" Click="AppearanceC64Earthtone_Click" />
+                            <MenuItem x:Name="AppearanceC64MetalMenuItem" Header="C64 metal raster" Click="AppearanceC64Metal_Click" />
+                            <MenuItem x:Name="AppearanceC64InterlacedBlueMenuItem" Header="C64 interlaced blue" Click="AppearanceC64InterlacedBlue_Click" />
+                            <MenuItem x:Name="AppearanceC64ExtrudedCyanMenuItem" Header="C64 extruded cyan" Click="AppearanceC64ExtrudedCyan_Click" />
+                            <MenuItem x:Name="AppearanceC64RainbowMenuItem" Header="C64 rainbow" Click="AppearanceC64Rainbow_Click" />
                         </MenuItem>
                         <MenuItem Header="Brightness">
                             <MenuItem x:Name="Brightness25MenuItem" Header="25 %" Click="Brightness25_Click" />
@@ -63,6 +77,11 @@
                         <MenuItem x:Name="ForegroundColorMenuItem" Header="Foreground color" Click="ForegroundColor_Click" />
                         <MenuItem x:Name="BackgroundColorMenuItem" Header="Background color" Click="BackgroundColor_Click" />
                         <MenuItem x:Name="ShowTitleBarMenuItem" Header="Show title bar" Click="ShowTitleBar_Click" />
+                        <MenuItem x:Name="DisplaySizeMenuItem" Header="Display size">
+                            <MenuItem Header="Increase size/zoom (+)" Click="IncreaseDisplaySize_Click" />
+                            <MenuItem Header="Decrease size/zoom (-)" Click="DecreaseDisplaySize_Click" />
+                            <MenuItem Header="Reset size/zoom (0)" Click="ResetDisplaySize_Click" />
+                        </MenuItem>
                         <MenuItem Header="Clock">
                             <MenuItem Header="Show clock (T)" Click="ShowTime_Click" />
                             <MenuItem x:Name="ShowSecondsMenuItem" Header="Show seconds" Click="ShowSeconds_Click" />
@@ -130,7 +149,6 @@
             </StackPanel>
         </Border>
         <Border x:Name="StartupBrandOverlay"
-                IsHitTestVisible="False"
                 Background="#E6000000">
             <StackPanel HorizontalAlignment="Center"
                         VerticalAlignment="Center"
@@ -147,6 +165,15 @@
                            FontFamily="Inter"
                            FontSize="12"
                            Foreground="#D8FFFFFF" />
+                <TextBlock Text="DrWize - 2027 - DrWize/DMDClock-Windows-x64"
+                           HorizontalAlignment="Center"
+                           FontFamily="Inter"
+                           FontSize="10"
+                           Foreground="#B8FFFFFF"
+                           TextDecorations="Underline"
+                           Cursor="Hand"
+                           ToolTip.Tip="https://github.com/DrWize/DMDClock-Windows-x64"
+                           PointerPressed="StartupCredit_PointerPressed" />
             </StackPanel>
         </Border>
         </Grid>

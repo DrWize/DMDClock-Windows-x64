@@ -8,29 +8,70 @@ namespace DmdClock.App.Controls;
 
 public sealed class DmdDisplay : Control
 {
-    private IBrush[] _dotBrushes = [];
-    private IBrush[] _glowBrushes = [];
+    private const int PaletteColumns = 128;
+    private IBrush[][] _dotBrushes = [];
+    private IBrush[][] _glowBrushes = [];
     private DmdFrame? _frame;
     private bool _glowEnabled = true;
     private IBrush _backgroundBrush = Brushes.Black;
+    private bool _paletteByRow;
 
-    public DmdDisplay() => SetAppearance(DmdColorPreset.Orange, 100, true, null, "#000000");
+    private double _zoom = 1d;
+
+    public DmdDisplay()
+    {
+        ClipToBounds = true;
+        SetAppearance(DmdColorPreset.Orange, 100, true, null, "#000000");
+    }
+
+    public double Zoom
+    {
+        get => _zoom;
+        set
+        {
+            _zoom = Math.Clamp(value, 0.05, 50d);
+            InvalidateVisual();
+        }
+    }
 
     public void SetAppearance(DmdColorPreset preset, int brightnessPercent, bool glowEnabled,
         string? foregroundColor, string? backgroundColor)
     {
         brightnessPercent = Math.Clamp(brightnessPercent, 25, 100);
-        var presetColor = preset switch
+        var palette = preset switch
         {
-            DmdColorPreset.Red => Color.FromRgb(255, 32, 16),
-            DmdColorPreset.Plasma => Color.FromRgb(120, 100, 255),
-            DmdColorPreset.Monochrome => Color.FromRgb(235, 235, 235),
-            _ => Color.FromRgb(255, 112, 14)
+            DmdColorPreset.Red => Solid(Color.FromRgb(255, 32, 16)),
+            DmdColorPreset.Plasma => Solid(Color.FromRgb(120, 100, 255)),
+            DmdColorPreset.Monochrome => Solid(Color.FromRgb(235, 235, 235)),
+            DmdColorPreset.NeonSunset => Gradient(Color.FromRgb(255, 43, 214), Color.FromRgb(255, 209, 102)),
+            DmdColorPreset.CyberOcean => Gradient(Color.FromRgb(38, 123, 255), Color.FromRgb(94, 255, 255)),
+            DmdColorPreset.ToxicArcade => Gradient(Color.FromRgb(46, 255, 106), Color.FromRgb(245, 255, 87)),
+            DmdColorPreset.Vaporwave => Gradient(Color.FromRgb(138, 77, 255), Color.FromRgb(255, 92, 225)),
+            DmdColorPreset.Aurora => Gradient(Color.FromRgb(52, 255, 190), Color.FromRgb(180, 112, 255)),
+            DmdColorPreset.C64BlueRound => Raster(C64Blue, C64LightBlue, C64Cyan, C64White, C64Cyan, C64LightBlue, C64Blue),
+            DmdColorPreset.C64RedRound => Raster(C64Red, C64LightRed, C64Orange, C64Yellow, C64White, C64Yellow, C64Orange, C64LightRed, C64Red),
+            DmdColorPreset.C64Earthtone => Raster(C64Brown, C64Red, C64Orange, C64LightRed, C64Yellow, C64LightRed, C64Orange, C64Red, C64Brown),
+            DmdColorPreset.C64Metal => Raster(C64DarkGray, C64Gray, C64LightGray, C64White, C64LightGray, C64Gray, C64DarkGray),
+            DmdColorPreset.C64InterlacedBlue => Raster(C64Blue, C64Black, C64LightBlue, C64Black, C64Cyan, C64Black, C64White, C64Black, C64Cyan, C64Black, C64LightBlue, C64Black, C64Blue),
+            DmdColorPreset.C64ExtrudedCyan => Raster(C64Black, C64Blue, C64Cyan, C64White, C64Cyan, C64Blue, C64Black, C64Blue, C64Cyan, C64LightBlue, C64Cyan, C64Blue, C64Black),
+            DmdColorPreset.C64Rainbow => Raster(C64Red, C64Orange, C64Yellow, C64LightGreen, C64Green, C64Cyan, C64LightBlue, C64Blue, C64Purple, C64LightRed),
+            _ => Solid(Color.FromRgb(255, 112, 14))
         };
-        var color = ParseColor(foregroundColor, presetColor);
+        _paletteByRow = IsC64RasterPreset(preset);
+        if (!string.IsNullOrWhiteSpace(foregroundColor))
+        {
+            palette = Solid(ParseColor(foregroundColor, palette[^1]));
+            _paletteByRow = false;
+        }
         _backgroundBrush = new SolidColorBrush(ParseColor(backgroundColor, Colors.Black));
-        _dotBrushes = CreateDotBrushes(color, brightnessPercent / 100d);
-        _glowBrushes = CreateGlowBrushes(color, brightnessPercent / 100d);
+        _dotBrushes = Enumerable.Range(0, PaletteColumns)
+            .Select(column => CreateDotBrushes(
+                palette[column], brightnessPercent / 100d))
+            .ToArray();
+        _glowBrushes = Enumerable.Range(0, PaletteColumns)
+            .Select(column => CreateGlowBrushes(
+                palette[column], brightnessPercent / 100d))
+            .ToArray();
         _glowEnabled = glowEnabled;
         InvalidateVisual();
     }
@@ -54,7 +95,7 @@ public sealed class DmdDisplay : Control
         if (frame is null)
             return;
 
-        var cellSize = Math.Min(Bounds.Width / frame.Width, Bounds.Height / frame.Height);
+        var cellSize = Math.Min(Bounds.Width / frame.Width, Bounds.Height / frame.Height) * Zoom;
         var displayWidth = cellSize * frame.Width;
         var displayHeight = cellSize * frame.Height;
         var originX = (Bounds.Width - displayWidth) / 2;
@@ -71,16 +112,20 @@ public sealed class DmdDisplay : Control
                 continue;
 
             var center = new Point(originX + ((x + 0.5) * cellSize), originY + ((y + 0.5) * cellSize));
+            var paletteCoordinate = _paletteByRow ? y : x;
+            var paletteExtent = _paletteByRow ? frame.Height : frame.Width;
+            var paletteColumn = Math.Clamp((paletteCoordinate * PaletteColumns) / paletteExtent, 0, PaletteColumns - 1);
             if (_glowEnabled)
-                context.DrawEllipse(_glowBrushes[intensity], null, center, glowRadius, glowRadius);
-            context.DrawEllipse(_dotBrushes[intensity], null, center, radius, radius);
+                context.DrawEllipse(_glowBrushes[paletteColumn][intensity], null, center, glowRadius, glowRadius);
+            context.DrawEllipse(_dotBrushes[paletteColumn][intensity], null, center, radius, radius);
         }
     }
 
     private static IBrush[] CreateDotBrushes(Color color, double brightness) => Enumerable.Range(0, 16)
         .Select(level =>
         {
-            var factor = (0.12 + (0.88 * level / 15d)) * brightness;
+            var amount = level / 15d;
+            var factor = (0.12 + (0.88 * amount)) * brightness;
             return (IBrush)new SolidColorBrush(Color.FromRgb(
                 Scale(color.R, factor),
                 Scale(color.G, factor),
@@ -95,9 +140,47 @@ public sealed class DmdDisplay : Control
 
     private static byte Scale(byte value, double factor) => (byte)Math.Clamp(Math.Round(value * factor), 0, 255);
 
+    private static Color Interpolate(Color start, Color end, double amount) => Color.FromRgb(
+        (byte)Math.Round(start.R + ((end.R - start.R) * amount)),
+        (byte)Math.Round(start.G + ((end.G - start.G) * amount)),
+        (byte)Math.Round(start.B + ((end.B - start.B) * amount)));
+
     private static Color ParseColor(string? value, Color fallback)
     {
         try { return string.IsNullOrWhiteSpace(value) ? fallback : Color.Parse(value); }
         catch (FormatException) { return fallback; }
     }
+
+    private static Color[] Solid(Color color) => Enumerable.Repeat(color, PaletteColumns).ToArray();
+
+    private static Color[] Gradient(Color low, Color high) => Enumerable.Range(0, PaletteColumns)
+        .Select(index => Interpolate(low, high, index / (PaletteColumns - 1d)))
+        .ToArray();
+
+    private static Color[] Raster(params Color[] bands) => Enumerable.Range(0, PaletteColumns)
+        .Select(index => bands[Math.Min((index * bands.Length) / PaletteColumns, bands.Length - 1)])
+        .ToArray();
+
+    private static bool IsC64RasterPreset(DmdColorPreset preset) => preset is
+        DmdColorPreset.C64BlueRound or DmdColorPreset.C64RedRound or DmdColorPreset.C64Earthtone or
+        DmdColorPreset.C64Metal or DmdColorPreset.C64InterlacedBlue or DmdColorPreset.C64ExtrudedCyan or
+        DmdColorPreset.C64Rainbow;
+
+    // Colodore-style approximations of the fixed Commodore 64 palette.
+    private static readonly Color C64Black = Color.FromRgb(0x00, 0x00, 0x00);
+    private static readonly Color C64White = Color.FromRgb(0xFF, 0xFF, 0xFF);
+    private static readonly Color C64Red = Color.FromRgb(0x68, 0x37, 0x2B);
+    private static readonly Color C64Cyan = Color.FromRgb(0x70, 0xA4, 0xB2);
+    private static readonly Color C64Purple = Color.FromRgb(0x6F, 0x3D, 0x86);
+    private static readonly Color C64Green = Color.FromRgb(0x58, 0x8D, 0x43);
+    private static readonly Color C64Blue = Color.FromRgb(0x35, 0x28, 0x79);
+    private static readonly Color C64Yellow = Color.FromRgb(0xB8, 0xC7, 0x6F);
+    private static readonly Color C64Orange = Color.FromRgb(0x6F, 0x4F, 0x25);
+    private static readonly Color C64Brown = Color.FromRgb(0x43, 0x39, 0x00);
+    private static readonly Color C64LightRed = Color.FromRgb(0x9A, 0x67, 0x59);
+    private static readonly Color C64DarkGray = Color.FromRgb(0x44, 0x44, 0x44);
+    private static readonly Color C64Gray = Color.FromRgb(0x6C, 0x6C, 0x6C);
+    private static readonly Color C64LightGreen = Color.FromRgb(0x9A, 0xD2, 0x84);
+    private static readonly Color C64LightBlue = Color.FromRgb(0x6C, 0x5E, 0xB5);
+    private static readonly Color C64LightGray = Color.FromRgb(0x95, 0x95, 0x95);
 }
