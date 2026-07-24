@@ -5,7 +5,8 @@ public enum ScreenSaverLaunchMode
     Normal,
     Fullscreen,
     Configure,
-    Preview
+    Preview,
+    Reviewer
 }
 
 public sealed record ScreenSaverLaunchOptions(ScreenSaverLaunchMode Mode, nint PreviewParent)
@@ -29,6 +30,7 @@ public sealed record ScreenSaverLaunchOptions(ScreenSaverLaunchMode Mode, nint P
             "s" => new(ScreenSaverLaunchMode.Fullscreen, 0),
             "c" => new(ScreenSaverLaunchMode.Configure, 0),
             "p" => ParsePreview(inlineValue ?? args.ElementAtOrDefault(1)),
+            "review" => new(ScreenSaverLaunchMode.Reviewer, 0),
             _ => new(ScreenSaverLaunchMode.Configure, 0)
         };
     }

@@ -1,6 +1,9 @@
 # Scene metadata
 
-`scenes/scene-metadata.json` supplements SCN files with information that is not stored in the SCN format itself. The file is versioned and can be edited without rebuilding the application.
+`scenes/scene-metadata.json` supplements SCN files with information that is not
+stored in the SCN format itself. The verified baseline file is tracked in Git and
+included in every portable ZIP, standalone package, screensaver package, and
+installer. Proprietary `.scn` animation files remain excluded.
 
 ```json
 {
@@ -18,6 +21,15 @@
 An exact entry under `files` takes precedence over a prefix rule. Paths are relative to the selected animation directory, and `/` is used on Windows as well. The `title`, `game`, `manufacturer`, `year`, `dateManufactured`, `players`, `machineType`, and `theme` fields are optional. Unknown files continue to work and are displayed using their filename.
 
 Metadata should only be added when the information is reliable. The application must not guess a game from generic names such as `RD0001.scn`.
+
+Release years appear in the Scene Reviewer only when one exact, verified year is
+known for the selected game identity. Missing or ambiguous years are intentionally
+hidden.
+
+Metadata corrections should be proposed through a GitHub issue or pull request
+with the game, scene path or prefix, corrected value, and a reliable evidence
+link. A future in-app updater remains on the roadmap; current metadata updates
+arrive with a new application build or a reviewed repository update.
 
 ## RD index mapping
 

@@ -143,6 +143,9 @@ try {
     if (Test-Path -LiteralPath $metadataSource) {
         Copy-Item -LiteralPath $metadataSource -Destination (Join-Path $stagingScenes 'scene-metadata.json') -Force
     }
+    if (-not (Test-Path -LiteralPath (Join-Path $stagingScenes 'scene-metadata.json') -PathType Leaf)) {
+        throw "Portable publish is missing scenes\scene-metadata.json."
+    }
 
     # Keep fonts added directly to an installed build. Relative paths are preserved so saved font choices remain valid.
     $stagingFonts = Join-Path $stagingDirectory 'fonts'
@@ -217,6 +220,10 @@ try {
 
         if ($LASTEXITCODE -ne 0) {
             throw "Standalone dotnet publish failed with exit code $LASTEXITCODE."
+        }
+        if (-not (Test-Path -LiteralPath (
+            Join-Path $standaloneStagingDirectory 'scenes\scene-metadata.json') -PathType Leaf)) {
+            throw "Standalone publish is missing scenes\scene-metadata.json."
         }
 
         $standaloneExe = Join-Path $standaloneStagingDirectory 'DmdClock.App.exe'

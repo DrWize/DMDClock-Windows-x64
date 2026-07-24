@@ -37,6 +37,7 @@ public partial class MainWindow : Window
     private readonly AnimationLibraryScanner _libraryScanner = new();
     private readonly AnimationLibraryStore _libraryStore = new();
     private readonly SceneMetadataStore _metadataStore = new();
+    private readonly AnimationSelectionStore _selectionStore = new();
     private readonly SemaphoreSlim _scanGate = new(1, 1);
     private readonly string _indexPath = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "DmdClock", "library-index.json");
@@ -45,7 +46,10 @@ public partial class MainWindow : Window
     private readonly DmdClockSettingsStore _settingsStore = new();
     private readonly string _settingsPath = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "DmdClock", "settings.json");
+    private readonly string _selectionPath = Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "DmdClock", "library-selections.json");
     private readonly List<AnimationLibraryItem> _playableItems = [];
+    private readonly List<AnimationCatalogItem> _catalogItems = [];
     private readonly Dictionary<MenuItem, string?> _clockFontItems = [];
     private readonly Dictionary<MenuItem, string?> _dateFontItems = [];
     private readonly DateTimeOffset _startedUtc = DateTimeOffset.UtcNow;
@@ -55,7 +59,9 @@ public partial class MainWindow : Window
     private AnimationLibraryIndex? _libraryIndex;
     private SceneMetadataCatalog _sceneMetadata = SceneMetadataCatalog.Empty;
     private FileSystemWatcher? _libraryWatcher;
+    private FileSystemWatcher? _selectionWatcher;
     private CancellationTokenSource? _rescanCancellation;
+    private CancellationTokenSource? _selectionReloadCancellation;
     private CancellationTokenSource? _informationCancellation;
     private readonly CancellationTokenSource _startupBrandCancellation = new();
     private DisplayMode _displayMode = DisplayMode.Time;
@@ -74,6 +80,7 @@ public partial class MainWindow : Window
     private string? _status;
     private string? _lastLoggedDisplay;
     private DmdClockSettings _settings = DmdClockSettings.Default;
+    private AnimationSelectionDocument _selectionDocument = AnimationSelectionDocument.Empty;
     private Point? _screenSaverMouseOrigin;
     private bool _pointerIsOverWindow;
 
@@ -112,6 +119,8 @@ public partial class MainWindow : Window
             _ = OpenSceneAsync();
         else if (e.Key == Key.O && e.KeyModifiers == (KeyModifiers.Control | KeyModifiers.Shift))
             _ = ChooseFolderAsync();
+        else if (e.Key == Key.R && e.KeyModifiers == (KeyModifiers.Control | KeyModifiers.Shift))
+            _ = OpenSceneReviewerAsync();
         else
         {
             switch (e.Key)
@@ -219,6 +228,35 @@ public partial class MainWindow : Window
         StartLibraryWatcher();
     }
 
+    private async Task DownloadScenesAsync()
+    {
+        var destination = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            "DmdClock", "Scenes", "DotClk");
+        var dialog = new SceneDownloadWindow(
+            destination,
+            L("downloadScenesTitle"),
+            L("downloadScenesDescription"),
+            L("viewSceneSource"),
+            L("download"),
+            L("cancel"));
+        var result = await dialog.ShowDialog<ScenePackInstallResult?>(this);
+        if (result is null) return;
+
+        _libraryRoot = result.DestinationDirectory;
+        _settings = (_settings with { AnimationDirectory = _libraryRoot }).Normalize();
+        SaveSettings();
+        await ScanLibraryAsync(startPlayback: true);
+        StartLibraryWatcher();
+        SetStatus(string.Format(
+            System.Globalization.CultureInfo.CurrentCulture,
+            L("scenesInstalled"),
+            result.SceneCount));
+        await _log.WriteAsync(DateTimeOffset.UtcNow,
+            $"scenes.download status=success count={result.SceneCount} bytes={result.DownloadedBytes} " +
+            $"root=\"{SanitizeLogValue(result.DestinationDirectory)}\" source=\"{ScenePackDownloader.SourceUrl}\"");
+    }
+
     private async Task ScanLibraryAsync(bool startPlayback)
     {
         if (_libraryRoot is null) return;
@@ -238,16 +276,10 @@ public partial class MainWindow : Window
             _libraryIndex = await Task.Run(() => _libraryScanner.ScanAsync(_libraryRoot, previous));
             await _libraryStore.SaveAtomicAsync(_libraryIndex, _indexPath);
 
-            var currentId = _libraryPosition >= 0 && _libraryPosition < _playableItems.Count
-                ? _playableItems[_libraryPosition].Id
-                : null;
-            _playableItems.Clear();
-            _playableItems.AddRange(_libraryIndex.Items.Where(static item => item.IsValid));
-            StartupAnimationCountText.Text = string.Format(
-                System.Globalization.CultureInfo.CurrentCulture,
-                L("startupLoaded"),
-                _playableItems.Count);
-            _libraryPosition = currentId is null ? -1 : _playableItems.FindIndex(item => item.Id == currentId);
+            _catalogItems.Clear();
+            _catalogItems.AddRange(AnimationSelectionResolver.BuildCatalog(
+                _libraryIndex.Items, _sceneMetadata));
+            RebuildPlayableItems();
 
             var broken = _libraryIndex.Items.Count(static item => !item.IsValid);
             var warned = _libraryIndex.Items.Count(static item =>
@@ -558,6 +590,67 @@ public partial class MainWindow : Window
         _libraryWatcher.Error += (_, _) => ScheduleRescan();
     }
 
+    private void StartSelectionWatcher()
+    {
+        _selectionWatcher?.Dispose();
+        var directory = Path.GetDirectoryName(_selectionPath);
+        if (directory is null) return;
+        Directory.CreateDirectory(directory);
+        _selectionWatcher = new FileSystemWatcher(directory, Path.GetFileName(_selectionPath))
+        {
+            NotifyFilter = NotifyFilters.FileName | NotifyFilters.LastWrite | NotifyFilters.Size,
+            EnableRaisingEvents = true
+        };
+        _selectionWatcher.Created += SelectionChanged;
+        _selectionWatcher.Changed += SelectionChanged;
+        _selectionWatcher.Renamed += SelectionChanged;
+        _selectionWatcher.Error += (_, _) => ScheduleSelectionReload();
+    }
+
+    private void SelectionChanged(object sender, FileSystemEventArgs e) =>
+        ScheduleSelectionReload();
+
+    private void ScheduleSelectionReload()
+    {
+        var cancellation = new CancellationTokenSource();
+        var previous = Interlocked.Exchange(ref _selectionReloadCancellation, cancellation);
+        previous?.Cancel();
+        _ = DebouncedSelectionReloadAsync(cancellation.Token);
+    }
+
+    private async Task DebouncedSelectionReloadAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            await Task.Delay(250, cancellationToken);
+            var document = await _selectionStore.LoadAsync(_selectionPath, cancellationToken);
+            Dispatcher.UIThread.Post(() =>
+            {
+                _selectionDocument = document;
+                RebuildPlayableItems();
+            });
+        }
+        catch (OperationCanceledException) { }
+    }
+
+    private void RebuildPlayableItems()
+    {
+        var currentId = _libraryPosition >= 0 && _libraryPosition < _playableItems.Count
+            ? _playableItems[_libraryPosition].Id
+            : null;
+        _playableItems.Clear();
+        _playableItems.AddRange(AnimationSelectionResolver.ResolvePlayable(
+            _catalogItems, _selectionDocument));
+        var validCount = _catalogItems.Count(static item => item.LibraryItem.IsValid);
+        StartupAnimationCountText.Text = validCount == 0
+            ? L("startupNoAnimations")
+            : $"{_playableItems.Count:N0} allowed of {validCount:N0} animations";
+        _libraryPosition = currentId is null
+            ? -1
+            : _playableItems.FindIndex(item => item.Id == currentId);
+        if (_libraryPosition < -1) _libraryPosition = -1;
+    }
+
     private void LibraryChanged(object sender, FileSystemEventArgs e)
     {
         if (string.Equals(Path.GetExtension(e.FullPath), ".scn", StringComparison.OrdinalIgnoreCase) ||
@@ -677,8 +770,11 @@ public partial class MainWindow : Window
         _startupBrandCancellation.Dispose();
         CancelInformationDisplay();
         _libraryWatcher?.Dispose();
+        _selectionWatcher?.Dispose();
         _rescanCancellation?.Cancel();
         _rescanCancellation?.Dispose();
+        _selectionReloadCancellation?.Cancel();
+        _selectionReloadCancellation?.Dispose();
         var endedUtc = DateTimeOffset.UtcNow;
         var reason = _exitRequestedByMenu ? "menu" : "window";
         _log.WriteAsync(endedUtc,
@@ -733,6 +829,7 @@ public partial class MainWindow : Window
     private async Task InitializeDefaultLibraryAsync()
     {
         _settings = await _settingsStore.LoadAsync(_settingsPath);
+        _selectionDocument = await _selectionStore.LoadAsync(_selectionPath);
         LocalizationManager.Load(_settings.Language ?? "en");
         StartupAnimationCountText.Text = L("startupLoading");
         ApplyMenuTranslations(MainContextMenu.Items);
@@ -744,6 +841,37 @@ public partial class MainWindow : Window
         _libraryRoot = ResolveScenesDirectory(_settings.AnimationDirectory);
         await ScanLibraryAsync(startPlayback: false);
         StartLibraryWatcher();
+        StartSelectionWatcher();
+        if (_launchOptions.Mode == ScreenSaverLaunchMode.Reviewer)
+            await OpenSceneReviewerAsync();
+    }
+
+    private async Task OpenSceneReviewerAsync()
+    {
+        if (_launchOptions.Mode is ScreenSaverLaunchMode.Fullscreen or ScreenSaverLaunchMode.Preview)
+            return;
+        if (_libraryRoot is null || _libraryIndex is null)
+        {
+            SetStatus("Scan the scene library before opening the reviewer.");
+            return;
+        }
+        if (_catalogItems.Count == 0)
+        {
+            SetStatus("No valid scenes are available to review.");
+            return;
+        }
+
+        var reviewer = new SceneReviewerWindow(
+            _libraryRoot,
+            _catalogItems.ToArray(),
+            _selectionStore,
+            _selectionPath,
+            _selectionDocument,
+            _settings);
+        await reviewer.ShowDialog(this);
+        _selectionDocument = await _selectionStore.LoadAsync(_selectionPath);
+        RebuildPlayableItems();
+        SetStatus($"{_playableItems.Count:N0} scenes allowed for playback");
     }
 
     private async Task BeginAutomaticCycleAsync()
@@ -1176,7 +1304,9 @@ public partial class MainWindow : Window
 
     private async void OpenScene_Click(object? sender, RoutedEventArgs e) => await OpenSceneAsync();
     private async void ChooseFolder_Click(object? sender, RoutedEventArgs e) => await ChooseFolderAsync();
+    private async void DownloadScenes_Click(object? sender, RoutedEventArgs e) => await DownloadScenesAsync();
     private async void Rescan_Click(object? sender, RoutedEventArgs e) => await ScanLibraryAsync(startPlayback: false);
+    private async void SceneReviewer_Click(object? sender, RoutedEventArgs e) => await OpenSceneReviewerAsync();
     private void MainContextMenu_Opened(object? sender, RoutedEventArgs e)
     {
         PopulateFontMenus();

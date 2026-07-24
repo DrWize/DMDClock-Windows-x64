@@ -9,6 +9,7 @@ public sealed class ScreenSaverLaunchOptionsTests
     [InlineData("-S", ScreenSaverLaunchMode.Fullscreen)]
     [InlineData("/c", ScreenSaverLaunchMode.Configure)]
     [InlineData("/c:123", ScreenSaverLaunchMode.Configure)]
+    [InlineData("/review", ScreenSaverLaunchMode.Reviewer)]
     public void Parse_RecognizesStandardModes(string argument, ScreenSaverLaunchMode expected)
     {
         var options = ScreenSaverLaunchOptions.Parse([argument], "DMDClock.scr");

@@ -6,6 +6,7 @@ external/
 output/
 scenes/*
 !scenes/README.md
+!scenes/scene-metadata.json
 *.user
 *.suo
 

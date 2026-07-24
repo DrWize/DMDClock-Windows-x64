@@ -4,3 +4,7 @@ Place `.scn` animation files in this directory. DMDClock uses `./scenes` as its 
 
 Animation files in this directory are intentionally ignored by Git. Personal builds copy the local contents into `scenes/` beside the application executable, and later builds preserve that directory.
 
+`scene-metadata.json` is the exception: it is tracked, validated, and copied into
+every published application, screensaver, and installer package. Keep metadata
+changes separate from proprietary `.scn` files and document reliable sources in
+the corresponding GitHub request.

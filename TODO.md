@@ -1,214 +1,720 @@
-# DMDClock for Windows x64 — TODO
+# DMDClock for Windows x64 — development TODO
 
-The goal is to create a standalone Windows application that displays a clock and plays DotClk animations on a regular monitor. The application must not require a Raspberry Pi, Teensy, or physical DMD hardware.
+This file is both the contributor runbook and the prioritized backlog. The active
+sections contain only unfinished work. Finished items remain in the completed-work
+archive so decisions and implementation history are not lost.
 
-## Active scope
+## Project goal and scope
 
-Active development covers only the classic DotClk display: 128×32, four-bit monochrome `.scn` files, storyboards/masks, clock layers, library management, controls, and classic DMD themes. Serum, cRom, full RGB, larger DMD formats, DMD Extensions integration, and colorization tools are frozen as future work and must not be prioritized or connected to the application now.
+DMDClock is a standalone Windows clock and animation player for the classic DotClk
+format. It renders a 128×32, four-bit monochrome DMD on a normal monitor and does
+not require a Raspberry Pi, Teensy, ESP32, or physical DMD.
 
-Audio is outside the project scope. The application must not play, import, or require audio tracks.
+Active development is limited to:
 
-The finished clock should look like a classic DMD: a 128×32-dot surface where digits, text, and images consist of clearly separated, round glowing dots against a black background. The default appearance should use orange/red-yellow dots with varying intensity, subtle glow, and visible dark space between dots—not smooth fonts or ordinary display pixels. The display must retain its 4:1 aspect ratio and a thin black border at every scale.
+- classic 128×32 `.scn` playback;
+- storyboard timing, masks, blanking, and clock layers;
+- clocks, dates, DotClk/OpenType fonts, and classic DMD themes;
+- library indexing, metadata, selection, controls, and Windows packaging.
 
-## Active work
+Audio is outside scope. Serum, cRom, full RGB, larger displays, DMD Extensions,
+Raspberry Pi, ESP32-S3, and physical-output support are deferred until the classic
+Windows application is release-ready.
 
-Only unfinished work is listed in this part of the document. Completed work is archived at the end.
+## Current baseline
 
-## Standalone EXE/SCR roadmap
+The application, Windows screensaver, portable ZIP, standalone single-file ZIP,
+per-user installer, shared scene selection, and live Scene Reviewer are functional.
+Automated tests cover SCN parsing/playback, settings, embedded DotClk fonts,
+screensaver arguments, library indexing, selection persistence, scene downloads,
+and compatibility reporting.
 
-The target is a standalone `DmdClock.App.exe` and a separate standalone `DMDClock.scr` that require neither adjacent DLL files nor an installed .NET runtime. Translations, downloaded `.scn` animations, and user-supplied fonts remain external resources so they can be installed or updated independently.
+The remaining release blockers are manual Windows validation, read-only-directory
+testing, translation fallback behavior, and confirmation that the original DotClk
+fonts can be redistributed publicly.
 
-### Standalone resources
+## End-user setup — no source code or SDK required
 
-- [ ] Provide a clear fallback and error message when external translations are unavailable
+If you only want to install and use DMDClock, follow this section and stop before
+**First-time developer setup**. You do not need Git, PowerShell, Visual Studio, or
+the .NET SDK.
 
-### Standalone publishing profile
+### 1. Choose a Windows package
 
-- [ ] Investigate trimming only after the untrimmed single-file build is fully verified
+Download a published ZIP from the project's GitHub Releases page. Do not download
+GitHub's automatic **Source code** ZIP unless you intend to compile the project.
 
-### Standalone binary generation
+| Package | Recommended for | What must stay together |
+| --- | --- | --- |
+| `DMDClock-win-x64-standalone.zip` | Most users | EXE/SCR plus the external `i18n` and optional `fonts` folders |
+| `DMDClock-win-x64-portable.zip` | Troubleshooting or conventional self-contained deployment | The complete extracted directory, including every DLL |
 
-- [ ] Verify `/s`, `/c`, and `/p <HWND>` screensaver modes
-- [ ] Verify installation and selection through Windows Screen Saver Settings
+The standalone package is recommended. Its EXE and SCR contain the .NET runtime,
+Avalonia, native graphics libraries, and the four DotClk fonts. The regular portable
+package uses adjacent DLL files; all of those DLLs are required and must not be
+deleted.
 
-### Standalone writable-data handling
+### 2. Extract the complete ZIP
 
-- [ ] Avoid requiring write access beside the executable
-- [ ] Verify operation when the executable is launched from a read-only directory
+1. Right-click the downloaded ZIP and open **Properties**.
+2. If Windows shows **Unblock**, select it and click **OK**.
+3. Select **Extract All**. Do not run DMDClock from inside the ZIP.
+4. Extract to a stable location you control, for example:
 
-### Standalone release validation
+```text
+C:\Users\<your-name>\Apps\DMDClock\
+D:\Apps\DMDClock\
+```
 
-- [ ] Test normal EXE startup, clock display, localization, fonts, menus, and SCN playback
-- [ ] Test the screensaver in fullscreen, configuration, and Control Panel preview modes
-- [ ] Test on clean Windows 10 and Windows 11 x64 systems without .NET installed
-- [ ] Check native-library extraction, cleanup, startup time, and package size
-- [ ] Check Windows SmartScreen and antivirus behavior
+Avoid a temporary/download directory because the screensaver installation continues
+to use `DMDClock.scr` from its extracted location. Keep the complete extracted
+folder after installing the screensaver.
 
-### Standalone completion criteria
+The extracted standalone folder should contain at least:
 
-- [ ] The screensaver works through Windows Screen Saver Settings
-- [ ] Clean-machine testing succeeds on Windows 10 and Windows 11 x64
+```text
+DmdClock.App.exe
+DMDClock.scr
+i18n\
+fonts\
+scenes\scene-metadata.json
+README.md
+build-info.json
+SCN-COMPATIBILITY.txt
+SHA256SUMS.txt
+```
 
-## Decisions
+### 3. Verify the standalone download
 
-### Appearance
+Open PowerShell in the extracted directory and compare these hashes with
+`SHA256SUMS.txt`:
 
-- [ ] Add scrolling C64-inspired palettes/raster bars with selectable direction and speed, a slow default, and an option to disable animation
-- [ ] Future: animated colors
-- [ ] Future: selectable classic monochrome DMD or full color
+```powershell
+Get-FileHash .\DmdClock.App.exe -Algorithm SHA256
+Get-FileHash .\DMDClock.scr -Algorithm SHA256
+Get-Content .\SHA256SUMS.txt
+```
 
-### Display
+Only continue through a SmartScreen warning when the package came from the expected
+project release and its checksum is trusted. Do not bypass a warning for an
+unverified download.
 
-- [ ] Fullscreen on a selected monitor
-- [ ] Start automatically with Windows
-- [ ] Always on top
-- [ ] Show a clear but discreet paused indicator
+### 4. Start DMDClock for the first time
 
-### Clock
+1. Double-click `DmdClock.App.exe`.
+2. Right-click anywhere on the DMD display to open the menu.
+3. Choose **Appearance → Clock → Font** and select a clock face.
+4. Choose **Appearance → Date → Font** if you want a different date face.
+5. Configure color, brightness, glow, clock format, seconds, and date format.
+6. Press `T` to show time, `D` to show the date, and `F11` for fullscreen.
 
-- [ ] Optional date display
-- [ ] Display weekday
-- [ ] Add weather later
+Settings are saved automatically under:
 
-### Animation selection and playback order
+```text
+%LOCALAPPDATA%\DmdClock\settings.json
+```
 
-- [ ] Random selection from all enabled Stern animations
-- [ ] Random selection within one selected game
-- [ ] Sequential playback within one selected game
-- [ ] Chronological playback according to original file/sequence order
-- [ ] Make manufacturers selectable, such as Stern, Williams, and Bally, when the material can be identified reliably
-- [ ] Display a library tree: manufacturer → game → animation
-- [ ] Checkbox to enable or disable a complete manufacturer
-- [ ] Checkbox to enable or disable a complete game
-- [ ] Checkbox to enable or disable one animation
-- [ ] Add search plus `Select all`, `Clear all`, and `Reset`
-- [ ] Show a preview and basic details for the selected animation
-- [ ] Preserve all selections and blocked animations between application starts
-- [ ] Find or create a curated SCN list with consistent descriptive filenames and associated game/scene metadata
+### 5. Add animations
 
-### Updatable animation library
+Animations are not included in either ZIP and must be obtained separately.
 
-- [ ] Add new files without resetting enablement, block lists, or playlists
+Use any of these setups:
 
-## Work plan
+- right-click DMDClock and choose **Download DotClk scenes…** to download the
+  original scene pack into `%LOCALAPPDATA%\DmdClock\Scenes\DotClk\`;
+- create a `scenes` folder beside `DmdClock.App.exe` and copy `.scn` files into it; or
+- press `Ctrl+Shift+O` and select an existing animation directory anywhere on the computer.
 
-### 2. Basic Windows application
+Subdirectories are scanned recursively. Press `F5` after adding or replacing files.
+The app skips damaged files, keeps valid files available, and writes details to:
 
-- [ ] Support development, build, and debugging directly in VS Code
-- [ ] Avoid dependencies on full Visual Studio and project-specific user settings
-- [ ] Add recommended VS Code extensions to `.vscode/extensions.json`
-- [ ] Add build, test, and publish commands to `.vscode/tasks.json`
-- [ ] Add launch and debugging to `.vscode/launch.json`
-- [ ] Verify that the same commands work in VS Code and directly in PowerShell
+```text
+%LOCALAPPDATA%\DmdClock\logs\dmdclock.log
+```
 
-### 3. Clock functionality
+Optional files:
 
-- [ ] Implement every mode under `Animation selection and playback order`
+- update the bundled `scene-metadata.json` only with reviewed game/sequence data;
+- put extra `.ttf` or `.otf` files anywhere under the extracted `fonts` directory;
+- keep `i18n\en.json` and any selected translation beside the binaries.
 
-### 4. Settings
+ALTERN8, FISHY, TREK, and TWILIGHT are already embedded; do not download separate
+`.fnt` files for normal use.
 
-- [ ] Select monitor
-- [ ] Set frame rate
-- [ ] Enable or disable clock, date, and animations
-- [ ] Select playback mode: all, manufacturer, game, random, or chronological
-- [ ] Manage enabled and disabled manufacturers, games, and individual animations
+### 6. Configure automatic playback
 
-### 4c. Raspberry Pi and ESP32-S3
+From the right-click menu:
 
-- [ ] Build Windows and Raspberry Pi versions from the same cross-platform core
-- [ ] Define and document a versioned `DmdFrame` format independent of C# and ESP-IDF
-- [ ] Create shared test vectors verified identically by the desktop application and ESP32 firmware
-- [ ] Create a conversion tool that builds optimized versioned ESP32 animation packages from current library files
-- [ ] Add a manifest with file ID, content hash, format version, and package version to every ESP32 package
-- [ ] Make ESP32 packages easy to replace by SD card and prepare safe local-network updates
-- [ ] Fully validate a package before activation and retain the previous valid package after errors or interrupted transfers
-- [ ] Include new Windows/Raspberry Pi animation files through an incremental package build without changing firmware
+1. enable **Automatic clock/animation cycle**;
+2. choose sequential or random order;
+3. choose animations per cycle;
+4. choose clock duration and the pause between animations;
+5. press `T` to start from the clock.
 
-### 5. Distribution
+The selected scene directory and playback preferences persist after restart.
+Use **Review and choose scenes…** (`Ctrl+Shift+R`) to enable games and allow the
+individual animations used by both the normal app and screensaver.
 
-- [ ] Consider a conventional installer
-- [ ] Add a shortcut and optional automatic startup
-- [ ] Test on a clean Windows 10/11 computer
+### 7. Install the Windows screensaver
 
-### 6. README and documentation
+1. Close DMDClock.
+2. Right-click `DMDClock.scr` in the extracted folder.
+3. Choose **Install**.
+4. Select DMDClock in **Windows Screen Saver Settings**.
+5. Set the Windows wait time and use **Preview** to test it.
+6. Run `DmdClock.App.exe` or `DMDClock.scr /c` whenever you need to change DMDClock settings.
 
-- [ ] Explain how to open and use the project in VS Code
-- [ ] List required and recommended VS Code extensions
-- [ ] Show how to run `Get-OriginalResources.ps1`
-- [ ] Describe testing one file and the complete animation collection
-- [ ] Add troubleshooting for missing resources, invalid `.scn` files, and display problems
+Do not move, rename, or delete the extracted folder after installation. If it must
+move, select another screensaver first, move the folder, and install the SCR again.
 
-## Important checks
+The screensaver shares the normal application's scene directory and AppData settings.
+It exits on a key, click, or deliberate mouse movement.
 
-- [ ] License assessments are handled separately and should not block technical development
+### 8. Upgrade without losing settings
 
-## Ideas for later versions
+1. Close DMDClock and select another Windows screensaver temporarily.
+2. Extract the new ZIP into a new stable directory.
+3. Copy only your portable `scenes`, optional user fonts, and custom translation
+   files from the old directory.
+4. Start the new `DmdClock.App.exe` and verify the version in `build-info.json`.
+5. Reinstall the new `DMDClock.scr`.
+6. Delete the old extracted directory only after the new build works.
 
-### Future — Serum, full color, and larger DMDs
+Preferences and an externally selected scene directory remain under AppData, so
+they normally survive an upgrade without copying.
 
-- [ ] Investigate GPL-2.0 and select a safe integration boundary before importing code or binaries
-- [ ] Make general frame size, stride, and pixel/color formats explicit in a versioned `DmdFrame`
-- [ ] Add indexed color and RGB24 without affecting monochrome playback
-- [ ] Test 128×32, 192×64, and 256×64 using fit, fill, stretch, and integer scaling
-- [ ] Investigate Serum, cRom, VNI, PAL, and PAC colorization
-- [ ] Implement dynamic palette sets, area masks, backgrounds, color rotations, and sprites
-- [ ] Add license and author metadata for each locally added colorization
-- [ ] Verify future color rendering against DMD Extensions in a separate integration-test profile
-- [ ] Investigate network adapters and physical DMD output only after the classic display is complete
-- [ ] Custom named playlists in addition to built-in selection modes
-- [ ] Favorites in addition to the required enable/block list
-- [ ] Day/night brightness schedule
-- [ ] DMD effects such as glow, scanlines, and color palettes
-- [ ] GIF and MP4 support in addition to `.scn`
-- [ ] Mobile remote control through a local web interface
-- [ ] Physical LED matrix or Pin2DMD support
+### 9. Common setup problems
 
-## Additional feature ideas
+- **The EXE reports missing DLLs:** the regular portable package was used without
+  all adjacent files. Extract the complete ZIP again or use the standalone package.
+- **Menus show internal key names:** restore the package's complete `i18n` folder
+  beside the EXE.
+- **No animations appear:** confirm the chosen directory contains `.scn` files,
+  then press `F5` and check the log for rejected files.
+- **A new font does not appear:** place `.ttf`/`.otf` under `fonts`, then reopen the
+  right-click menu.
+- **The screensaver preview cannot start:** reinstall `DMDClock.scr` from its final
+  stable location and keep the package files in place.
+- **Settings need to be reset:** close DMDClock, back up
+  `%LOCALAPPDATA%\DmdClock`, then remove `settings.json`. The app recreates defaults
+  on the next start.
+- **The screen is blank:** press `T`, restore brightness to 100%, select Classic
+  orange, and verify the foreground/background colors are different.
+
+## First-time developer setup
+
+### Requirements
+
+- Windows 10 or Windows 11 x64
+- Git
+- .NET 10 SDK
+- PowerShell 7 recommended
+- VS Code optional; full Visual Studio is not required
+
+Check the tools before restoring:
+
+```powershell
+git --version
+dotnet --info
+$PSVersionTable.PSVersion
+```
+
+Clone and enter the repository:
+
+```powershell
+git clone https://github.com/DrWize/DMDClock-Windows-x64.git
+Set-Location DMDClock-Windows-x64
+```
+
+Restore, build, test, and run:
+
+```powershell
+dotnet restore DMDClock.sln
+dotnet build DMDClock.sln -c Debug
+dotnet test DMDClock.sln -c Release
+dotnet run --project .\src\DmdClock.App\DmdClock.App.csproj
+```
+
+The application works without downloaded original resources. Add `.scn` files to
+`.\scenes`, choose another directory with `Ctrl+Shift+O`, or use the optional
+resource workflow below.
+
+### Local .NET SDK override
+
+`scripts/Build.ps1` looks for the SDK in this order:
+
+1. the executable specified by `DMD_DOTNET`;
+2. `..\.tools\dotnet10\dotnet.exe` relative to the repository;
+3. `dotnet` from `PATH`.
+
+Example override:
+
+```powershell
+$env:DMD_DOTNET = 'C:\Program Files\dotnet\dotnet.exe'
+.\scripts\Build.ps1 -NoStart
+```
+
+## Optional original resources
+
+Original repositories and animation files are not required for normal compilation.
+The download script stores them under the Git-ignored `external\` directory and
+writes reproducibility metadata there.
+
+Download all missing reference repositories:
+
+```powershell
+.\scripts\Get-OriginalResources.ps1
+```
+
+Useful variants:
+
+```powershell
+# Download only the original scene/font resource repository.
+.\scripts\Get-OriginalResources.ps1 -Resource DotClk-Resources
+
+# Fast-forward existing clean repositories and report changes.
+.\scripts\Get-OriginalResources.ps1 -Update
+
+# Preview an update without changing files.
+.\scripts\Get-OriginalResources.ps1 -Update -WhatIf
+
+# Replace selected local repositories with fresh clones.
+.\scripts\Get-OriginalResources.ps1 -Resource DotClk-Resources -Redownload
+```
+
+Do not use `-Redownload` when an external repository contains local work that has
+not been copied elsewhere. See `docs\SOURCES.md` for sources and safety details.
+
+## Common development commands
+
+### Build and test
+
+```powershell
+dotnet build DMDClock.sln -c Debug
+dotnet test DMDClock.sln -c Release
+```
+
+Run one test class while iterating:
+
+```powershell
+dotnet test DMDClock.sln -c Release --filter FullyQualifiedName~DotClkFont
+```
+
+Run the application from source:
+
+```powershell
+dotnet run --project .\src\DmdClock.App\DmdClock.App.csproj
+```
+
+### Inspect an SCN collection
+
+`scan` reads every `.scn` recursively and reports accepted, warned, and rejected
+files. It exits with code `1` when any file is rejected.
+
+```powershell
+dotnet run --project .\tools\DmdClock.Tools\DmdClock.Tools.csproj -- scan .\scenes
+```
+
+`index` exercises the library scanner and reports the same high-level counts:
+
+```powershell
+dotnet run --project .\tools\DmdClock.Tools\DmdClock.Tools.csproj -- index .\scenes
+```
+
+Use `Ctrl+O` in the application to test one file. Use `F5` after adding files to the
+active library.
+
+### Generate RD scene metadata
+
+This script matches local `RD####.scn` files against the original `RD Index.txt`
+and writes `scenes\scene-metadata.json`.
+
+Prerequisites:
+
+- `external\DotClk-Resources\RD Index.txt` exists;
+- matching `RD*.scn` files exist under `scenes\`.
+
+```powershell
+.\scripts\Map-RdScenes.ps1
+```
+
+Override paths when the index or scene library is elsewhere:
+
+```powershell
+.\scripts\Map-RdScenes.ps1 `
+  -IndexPath 'D:\DotClk\RD Index.txt' `
+  -ScenesDirectory 'D:\DMD Scenes' `
+  -MetadataPath 'D:\DMD Scenes\scene-metadata.json'
+```
+
+### Render DotClk font previews
+
+The preview script reads the original `.fnt` files and produces one PNG per font:
+
+```powershell
+.\scripts\Render-DotClkFontPreviews.ps1
+```
+
+Default input and output:
+
+```text
+external\DotClk-Resources\Fonts\
+output\font-previews\
+```
+
+### Create distributable Windows builds
+
+Recommended non-interactive release build:
+
+```powershell
+dotnet test DMDClock.sln -c Release
+.\scripts\Build.ps1 -NoStart
+```
+
+Run and start the newly published regular application:
+
+```powershell
+.\scripts\Build.ps1
+```
+
+Useful build options:
+
+```powershell
+.\scripts\Build.ps1 -Configuration Debug -NoStart
+.\scripts\Build.ps1 -Runtime win-x64 -MaxArchivedBuilds 20 -NoStart
+```
+
+`Build.ps1` has intentional side effects:
+
+- closes running `DmdClock.App.exe`, `DMDClock.scr`, and related tool processes;
+- publishes regular self-contained and standalone single-file builds;
+- copies the existing regular-build scene library forward;
+- runs the SCN compatibility scan;
+- creates reports, checksums, and both ZIP packages;
+- archives the previous current builds;
+- retains 10 archive directories by default and permanently removes older ones.
+
+Build outputs:
+
+```text
+output\current\win-x64\
+output\current\win-x64\DMDClock-win-x64-portable.zip
+output\current\win-x64-standalone\
+output\current\win-x64-standalone\DMDClock-win-x64-standalone.zip
+output\archive\
+```
+
+Do not distribute files directly from `output\.staging\`. A successful build moves
+the completed packages into `output\current\`.
+
+## Runtime files and local data
+
+External files beside a published build:
+
+- `i18n\*.json` — translations; required for localized menus;
+- `fonts\**\*.ttf` and `*.otf` — optional user-installed fonts;
+- `scenes\**\*.scn` — optional portable scene library;
+- `scenes\scene-metadata.json` — optional game/sequence metadata.
+
+ALTERN8, FISHY, TREK, and TWILIGHT are embedded and require no adjacent `.fnt`
+files. Downloaded scenes remain external to the standalone EXE and SCR.
+
+Writable runtime data is stored under:
+
+```text
+%LOCALAPPDATA%\DmdClock\
+```
+
+- `settings.json` — saved preferences and selected paths;
+- `library-index.json` — incremental library index;
+- `library-selections.json` — enabled games and Allowed, Disallowed, or Unreviewed
+  scene decisions shared by the app and screensaver;
+- `logs\dmdclock.log` — active log;
+- `logs\dmdclock.log.previous` — rotated log.
+
+Generated and local-only directories such as `bin\`, `obj\`, `external\`, `output\`,
+and scene content are ignored by Git.
+
+## Manual Windows test checklist
+
+Before calling a build release-ready:
+
+- [ ] Extract each ZIP into a new empty directory; do not run from inside the ZIP
+- [ ] Start regular `DmdClock.App.exe` and standalone `DmdClock.App.exe`
+- [ ] Verify the built-in clock works with no `scenes` directory
+- [ ] Select ALTERN8, FISHY, TREK, and TWILIGHT independently for time and date
+- [ ] Verify 12/24-hour time, seconds on/off, and every date format
+- [ ] Load valid, warned, unsupported, and damaged SCN samples
+- [ ] Verify automatic cycles, pause, next/previous, metadata, and rescanning
+- [ ] Switch English/Swedish and test behavior with `i18n` missing
+- [ ] Verify settings and the library index are written only to AppData
+- [ ] Run from a read-only installation directory
+- [ ] Confirm `SHA256SUMS.txt` matches both standalone binaries
+- [ ] Check startup time, temporary native extraction, package size, SmartScreen,
+      and antivirus results
+
+Screensaver checks:
+
+```powershell
+& .\output\current\win-x64-standalone\DMDClock.scr /c
+& .\output\current\win-x64-standalone\DMDClock.scr /s
+```
+
+- [ ] Verify `/c` opens configuration mode
+- [ ] Verify `/s` opens fullscreen and exits on keyboard, click, or deliberate mouse movement
+- [ ] Right-click `DMDClock.scr`, choose **Install**, and select it in Windows Screen Saver Settings
+- [ ] Verify the Control Panel `/p <HWND>` preview is embedded and closes cleanly
+- [ ] Repeat standalone tests on clean Windows 10 and Windows 11 x64 machines
+      without an installed .NET runtime
+
+## Definition of done
+
+A completed item must include:
+
+- implementation and focused automated tests;
+- the full `dotnet test DMDClock.sln -c Release` suite passing;
+- relevant manual UI or screensaver validation;
+- documentation for new commands, settings, resources, or output files;
+- no downloaded animations, ROMs, secrets, or generated output staged in Git;
+- a checked item moved from active work to the completed archive.
+
+## Active roadmap
+
+### Priority 1 — release validation and robustness
+
+- [ ] Provide an English built-in translation fallback and a clear warning when
+      external translations are missing or invalid
+- [ ] Ensure startup and normal operation never require write access beside the executable
+- [ ] Complete every item in the manual Windows test checklist above
+- [ ] Confirm redistribution terms for ALTERN8, FISHY, TREK, and TWILIGHT before
+      publishing a public binary release; until then, keep the files embedded with
+      their sigmafx source, source commit, hashes, and unresolved license status documented
+- [ ] Verify SmartScreen and antivirus behavior for both EXE and SCR
+- [ ] Consider trimming only after the untrimmed standalone build passes all release tests
+
+Acceptance criteria:
+
+- both ZIPs work from read-only directories on clean Windows 10/11 x64;
+- the screensaver works in `/s`, `/c`, installed, and Control Panel preview modes;
+- missing optional scenes/fonts and missing or invalid translations do not crash startup;
+- all writable data stays under `%LOCALAPPDATA%\DmdClock`.
+
+### Priority 2 — VS Code development setup
+
+- [ ] Add `.vscode\extensions.json` with the required/recommended C# tooling
+- [ ] Add `.vscode\tasks.json` for restore, build, test, run, compatibility scan,
+      and release packaging
+- [ ] Add `.vscode\launch.json` for debugging the Avalonia application
+- [ ] Verify every VS Code task has an equivalent documented PowerShell command
+- [ ] Add troubleshooting for SDK discovery, missing resources, bad SCN files,
+      graphics problems, and locked build output
+
+Acceptance criteria:
+
+- a fresh clone can be restored, tested, run, and debugged from VS Code without
+  full Visual Studio or user-specific project files.
+
+### Priority 3 — animation-library selection
+
+- [x] Define the persisted selection schema before building the UI
+- [ ] Add manufacturer → game → animation browsing with search
+- [ ] Add `Select all`, `Clear all`, and `Reset`
+- [x] Enable/disable a game or individual animation
+- [x] Preserve selections and blocked animations across rescans and restarts
+- [x] Preserve selections when files are added, changed, moved, or removed
+- [ ] Support all enabled animations, manufacturer, game, random, sequential,
+      and chronological playback modes
+- [x] Show a live rendered preview and basic metadata for the selected animation
+- [ ] Add focused migration, persistence, and playback-selection tests
+
+#### Metadata packaging and GitHub updates
+
+- [x] Keep the verified baseline `scenes/scene-metadata.json` in source control while
+      continuing to ignore proprietary `.scn` animation files
+- [x] Include the baseline metadata JSON in every regular ZIP, standalone EXE package,
+      screensaver package, and installer build so a clean clone and every published
+      build have useful metadata without a separate download
+- [ ] Load metadata in layers: bundled baseline, newer validated GitHub update, then
+      optional library-local overrides, with later layers overriding matching entries
+- [ ] Add a versioned GitHub metadata manifest containing schema version, metadata
+      version, publication time, download URL, and SHA-256 checksum
+- [ ] Add **Check for metadata updates…** to the regular app and screensaver
+      configuration mode; download updates over HTTPS, validate schema and checksum,
+      and replace the AppData copy atomically only after complete validation
+- [ ] Store downloaded metadata under `%LOCALAPPDATA%\DmdClock\metadata\`, retain the
+      bundled version as an offline fallback, and retain the last known-good downloaded
+      version when an update is missing, damaged, incompatible, or unavailable
+- [ ] Make regular app and screensaver playback observe the same validated metadata
+      update without requiring either installation directory to be writable
+- [x] Display a release year only when the exact pinball identity and year are verified;
+      omit the year entirely when it is missing or uncertain and never infer or guess it
+- [ ] Add a GitHub issue form for metadata additions and corrections requiring game,
+      exact machine/version, release year, affected files or RD range, and a reliable
+      evidence link; only reviewed data may enter the published metadata
+- [ ] Add packaging, precedence, offline fallback, checksum failure, schema migration,
+      concurrent reload, and clean-build metadata tests
+
+#### Main application selection
+
+- [ ] Add a dedicated **Choose games and scenes…** window to the main DMDClock
+      application, opened from the context menu without cluttering the clock display
+- [ ] Show enabled games and the allowed scenes for the selected game side by side,
+      with search, per-game scene counts, and `Select all`, `Clear all`, and `Reset`
+- [x] Use strict allowlist behavior: only valid scenes explicitly marked `Allowed`
+      under an enabled game may enter the playback queue; `Unreviewed` and
+      `Disallowed` scenes must not play
+- [x] Keep individual scene decisions when a game is disabled so re-enabling the game
+      restores the same allowed scenes
+- [x] Store stable scene ID, last relative path, and SHA-256 fallback information so
+      decisions survive renames, moves, temporary removal, restoration, and rescans
+- [x] Make the main selector and Scene Reviewer read and write the same atomic
+      `%LOCALAPPDATA%\DmdClock\library-selections.json` selection document
+- [x] Apply the same selection resolver and shared selection document to both regular
+      DMDClock playback and fullscreen screensaver playback at the same time
+- [x] Watch the shared selection document for atomic changes so an already-running app
+      or screensaver safely refreshes its playback queue at the next scene boundary
+      without requiring a restart
+- [x] Make the selector and Scene Reviewer available from the regular app and
+      screensaver configuration mode while keeping fullscreen `/s` playback free of
+      configuration controls
+- [x] Put selection models, persistence, reconciliation, catalog building, filtering,
+      and playback-list generation in `DmdClock.Core`; keep the selector and reviewer
+      windows plus rendering behavior in `DmdClock.App`
+
+#### Scene Reviewer
+
+- [x] Add a small dedicated Scene Reviewer interface that groups the installed
+      animations by game and places every scene for the selected game in a tiled wall
+- [x] Run all scenes on the current page simultaneously and loop them independently
+      using the real DMD renderer, compositor, and working clock
+- [x] Support `Unreviewed`, `Allowed`, and `Disallowed` states with one-click
+      Allow/Disallow controls and an obvious overlay on disallowed tiles
+- [ ] Change tile mouse controls so left-click toggles `Allowed` ↔ `Unreviewed`
+      and right-click toggles `Disallowed` ↔ `Unreviewed`; clicking the opposite
+      decision directly replaces it, so left-click on Disallowed becomes Allowed
+      and right-click on Allowed becomes Disallowed
+- [ ] Add **Allow remaining Unreviewed** actions for the current page, current game,
+      and entire library so the reviewer can right-click only bad scenes and approve
+      every remaining scene in one batch; never change existing Disallowed decisions,
+      show the affected count, and require confirmation for the entire-library action
+- [x] Save every review decision immediately and make DMDClock playback use only
+      animations allowed by the persisted library selection
+- [x] Add separate numeric `Columns` and `Rows` controls starting at `1 × 1`, with
+      independent increment/decrement controls and `columns × rows` scenes per page
+- [ ] Preserve the 128×32 DMD aspect ratio, resize tiles to fill the available window,
+      remember the chosen rows and columns, and provide an optional automatic-fit mode
+- [ ] Add previous/next-page controls, scene ranges, and per-game plus overall counts
+      for allowed, disallowed, and unreviewed animations
+- [ ] Add filters for all, allowed, disallowed, and unreviewed scenes, plus pause,
+      replay, and enlarged single-scene inspection
+- [x] Keep large game groups responsive by using a shared render timer and rendering
+      the tiled wall efficiently rather than creating one timer per scene
+- [ ] Add tests for grid sizing, pagination, immediate persistence, state restoration,
+      filtering, and propagation of Allow/Disallow decisions into playback
+
+Acceptance criteria:
+
+- every clean and published app/screensaver build contains a verified baseline metadata
+  JSON and continues working when GitHub is unavailable;
+- an invalid or interrupted metadata update can never replace the last known-good copy;
+- verified GitHub metadata updates become available to both app and screensaver without
+  modifying installed files or user selection decisions;
+- adding new files never resets existing enablement or block choices;
+- every playback mode uses only the active selection and skips invalid files;
+- disabling and re-enabling a game restores its previous individual scene decisions;
+- a newly discovered or unreviewed scene never starts playing without explicit approval;
+- the main selector, reviewer, and playback queue always resolve the same saved state;
+- regular app and screensaver playback use the same selection concurrently and refresh
+  safely after a saved change without interrupting the scene currently playing;
+- every visible reviewer tile plays the complete scene with a working clock;
+- repeated left-clicks alternate only between Allowed and Unreviewed, repeated
+  right-clicks alternate only between Disallowed and Unreviewed, and switching
+  mouse button replaces the previous decision;
+- batch approval changes only Unreviewed scenes to Allowed, preserves every
+  Disallowed scene, and avoids requiring an individual click for every good scene;
+- changing rows or columns immediately rebuilds the page without losing decisions.
+
+### Priority 4 — display and daily operation
+
+- [ ] Select and persist the target monitor
+- [ ] Recover gracefully when the selected monitor is disconnected
+- [ ] Add start-with-Windows and always-on-top options
+- [ ] Add a discreet paused indicator
+- [ ] Add explicit enable/disable settings for clock, date, and animations
+- [ ] Add an optional weekday display
+- [ ] Add a system-tray icon with pause, show clock, next animation, and exit
+- [ ] Resume the last safe mode after restart or power failure
+- [ ] Export/import settings and create an automatic pre-migration backup
+- [ ] Add a diagnostics view for file, frame, timing, resolution, and decoder errors
+- [ ] Add silent fullscreen error handling that logs and skips broken content
+
+### Priority 5 — installer and release automation
+
+- [x] Select Inno Setup and add a conventional non-admin per-user installer
+- [x] Package standalone `DmdClock.App.exe`, `DMDClock.scr`, translations, font,
+      reports, checksums, and user documentation
+- [x] Add Start Menu shortcuts plus optional Desktop and automatic-start shortcuts
+- [x] Add installed instructions plus Start Menu and finish-page links showing
+      where and how to obtain original DotClk `.scn` files
+- [x] Add optional screensaver activation that restores the previous screensaver on uninstall
+- [x] Add `scripts\Build-Installer.ps1`, installer checksums, metadata, and archiving
+- [x] Complete automated silent install, screensaver registration, repeat-install,
+      checksum, AppData-preservation, and uninstall tests
+- [ ] Test an in-place upgrade from an older installer build
+- [ ] Test the interactive installer on clean Windows 10 and Windows 11 without .NET
+- [ ] Decide code-signing and release-checksum procedures
+- [ ] Add the signed setup EXE to a repeatable GitHub release workflow
+
+Detailed status, commands, and acceptance criteria:
+[`docs/INSTALLER.md`](docs/INSTALLER.md).
+
+## Backlog after the active priorities
 
 ### Clock and automatic display
 
-- [ ] Multiple clock layouts with or without seconds and date
-- [ ] Display seconds as digits, a blinking colon, or not at all
-- [ ] Selectable transitions between clock and animation: immediate, fade, or DMD dissolve
-- [ ] Schedule when the display is active, dimmed, or completely black
-- [ ] Separate brightness for day and night
-- [ ] Prevent burn-in through small position shifts and varied clock layouts
-- [ ] Support multiple automatically rotating time zones
+- [ ] Multiple clock layouts with optional seconds/date
+- [ ] Blinking-colon seconds mode
+- [ ] Immediate, fade, and DMD-dissolve transitions
+- [ ] Active/dim/off schedules and separate day/night brightness
+- [ ] Burn-in protection through small position shifts and rotating layouts
+- [ ] Multiple automatically rotating time zones
+- [ ] Weather integration
 
 ### Animations and library
 
-- [ ] Avoid replaying an animation until the others in the selection have been shown
-- [ ] Playback history with recently displayed games and animations
-- [ ] Temporary `Do not show again` directly from the context menu
-- [ ] Minimum and maximum display duration plus repeat count per animation
-- [ ] Allow short animations to loop a configured number of times
-- [ ] Custom labels and corrections for manufacturer, game, and animation names
-- [ ] Thumbnails or first-frame previews in the library
-- [ ] Show duplicates and let the user choose which copy to use
+- [ ] Avoid replaying an animation until the active selection has been exhausted
+- [ ] Playback history and temporary `Do not show again`
+- [ ] Per-animation duration, repeat count, and short-animation looping
+- [ ] Custom metadata corrections, thumbnails, and duplicate-file handling
+- [ ] Curate consistent names and metadata for known SCN collections
 
-### Image and display
+### Appearance
 
-- [ ] Selectable dot shape, size, spacing, and glow strength
-- [ ] Color palette globally, per manufacturer, or per game
-- [ ] Pixel-perfect integer scaling when display size permits
-- [ ] Return automatically to the correct monitor if one is disconnected
-- [ ] Separate settings for each connected monitor
-- [ ] Future: support larger DMD surfaces and full color according to the DMD Extensions plan
+- [ ] Scrolling C64-inspired palettes/raster bars with direction, speed, and disable controls
+- [ ] Selectable dot shape, spacing, and glow strength
+- [ ] Per-manufacturer or per-game color palettes
+- [ ] Pixel-perfect integer scaling when the available display size permits it
 
-### Operation and safety
+## Deferred future work
 
-- [ ] System-tray icon with play/pause, show clock, next animation, and exit
-- [ ] Resume the last mode after restart or power failure
-- [ ] Export and import settings and enablement lists
-- [ ] Back up settings automatically before major updates
-- [ ] Library report for valid, damaged, and disabled files
-- [ ] Diagnostics page with current file, frame rate, resolution, and decoding errors
-- [ ] Silent fullscreen error mode: skip the error and log it without a dialog
+Do not connect these items to the active application until the classic Windows
+release criteria are complete:
+
+- Raspberry Pi builds and shared cross-platform packaging
+- a versioned platform-independent `DmdFrame` interchange format
+- ESP32-S3 conversion, manifests, SD-card packages, rollback, and network updates
+- Serum, cRom, VNI/PAL/PAC, indexed color, RGB24, and DMD Extensions validation
+- 192×64 and 256×64 displays
+- physical LED matrix, Pin2DMD, and network-adapter output
+- GIF/MP4 import, mobile remote control, favorites, and named playlists
+- GPL integration-boundary and third-party colorization-license research
 
 ## Completed work
 
 Completed items are retained here as the project history.
 
+- [x] Add a safe in-app DotClk scene-pack downloader with progress, cancellation,
+      atomic installation, AppData storage, automatic selection, and rescanning
 ### Next prioritized work — Priority 1 — play a selected SCN file
 
 - [x] Implement a playback engine that follows storyboard frame delays
